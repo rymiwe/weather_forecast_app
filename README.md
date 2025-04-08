@@ -53,8 +53,13 @@ This application is available on GitHub: https://github.com/rymiwe/weather_forec
    ```
 
 4. Configure API key:
-   - Edit `config/env.yml` and replace `YOUR_ACTUAL_API_KEY_HERE` with your OpenWeatherMap API key
-   - You can get a free API key at https://openweathermap.org/api by creating an account
+   - Copy the example configuration file: `cp config/env.yml.example config/env.yml`
+   - Edit `config/env.yml` and replace `your_api_key_here` with your OpenWeatherMap API key
+   - You can get a free API key by:
+     1. Register at https://home.openweathermap.org/users/sign_up
+     2. After registering, go to your API keys section: https://home.openweathermap.org/api_keys
+     3. Copy your API key (or create a new one)
+   - Note: The application includes a mock weather service that works without an API key for development/testing
 
 5. Load sample data (optional):
    ```
@@ -167,11 +172,12 @@ weather_forecast_app/
 │   │   └── forecast.rb              # Forecast data model with caching
 │   ├── services/
 │   │   └── weather_service.rb       # OpenWeatherMap API integration
+│   │   └── mock_weather_service.rb  # Mock service for development/testing
 │   └── views/
 │       └── forecasts/               # Forecast views with Tailwind styling
 ├── config/
-│   ├── env_example.yml              # Example environment configuration
-│   └── env.yml                      # Your API key configuration
+│   ├── env.yml.example              # Example environment configuration (template)
+│   └── env.yml                      # Your API key configuration (not in git)
 ├── db/
 │   ├── migrate/                     # Database migration files
 │   └── seeds.rb                     # Sample forecast data
