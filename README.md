@@ -2,6 +2,10 @@
 
 A Ruby on Rails application that provides weather forecasts based on user-provided addresses with caching functionality.
 
+## Demo
+
+This application is available on GitHub: https://github.com/rymiwe/weather_forecast_app
+
 ## Features
 
 - Accept an address as input
@@ -33,7 +37,7 @@ A Ruby on Rails application that provides weather forecasts based on user-provid
 
 1. Clone the repository:
    ```
-   git clone [your-repository-url]
+   git clone https://github.com/rymiwe/weather_forecast_app.git
    cd weather_forecast_app
    ```
 
@@ -49,15 +53,28 @@ A Ruby on Rails application that provides weather forecasts based on user-provid
    ```
 
 4. Configure API key:
-   - Copy `config/env_example.yml` to `config/env.yml`
-   - Add your OpenWeatherMap API key (get one at https://openweathermap.org/api)
+   - Edit `config/env.yml` and replace `YOUR_ACTUAL_API_KEY_HERE` with your OpenWeatherMap API key
+   - You can get a free API key at https://openweathermap.org/api by creating an account
 
-5. Start the Rails server:
+5. Load sample data (optional):
+   ```
+   bin/rails db:seed
+   ```
+   This loads sample weather data for demonstration purposes.
+
+6. Start the Rails server:
    ```
    bin/dev
    ```
 
-6. Access the application at http://localhost:3000
+7. Access the application at http://localhost:3000
+
+## Using the Application
+
+1. Enter an address or zip code in the search field
+2. Click "Get Forecast" to retrieve the weather information
+3. View current temperature, high/low, and the 5-day forecast
+4. Note: If you search for a location with the same zip code within 30 minutes, you'll see a "Cached Result" indicator
 
 ## System Architecture
 
@@ -138,3 +155,39 @@ The application includes comprehensive tests covering:
 - **Error Handling**: Robust error handling throughout the application
 - **Responsive Design**: Mobile-friendly UI using Tailwind CSS
 - **Modern Web Standards**: Uses Hotwire/Turbo for seamless page updates without full refreshes
+
+## Project Structure
+
+```
+weather_forecast_app/
+├── app/
+│   ├── controllers/
+│   │   └── forecasts_controller.rb  # Handles forecast requests
+│   ├── models/
+│   │   └── forecast.rb              # Forecast data model with caching
+│   ├── services/
+│   │   └── weather_service.rb       # OpenWeatherMap API integration
+│   └── views/
+│       └── forecasts/               # Forecast views with Tailwind styling
+├── config/
+│   ├── env_example.yml              # Example environment configuration
+│   └── env.yml                      # Your API key configuration
+├── db/
+│   ├── migrate/                     # Database migration files
+│   └── seeds.rb                     # Sample forecast data
+└── test/
+    ├── models/                      # Model tests
+    ├── controllers/                 # Controller tests
+    └── system/                      # End-to-end tests
+```
+
+## Submission Information
+
+This project was created as part of a coding challenge with the following requirements:
+- Ruby on Rails implementation
+- Address input for weather forecasts
+- Current temperature and extended forecast display
+- 30-minute caching by zip code with indicators
+- Clean, maintainable code with proper documentation
+
+The complete source code is available at: https://github.com/rymiwe/weather_forecast_app
