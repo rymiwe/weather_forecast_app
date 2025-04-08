@@ -1,0 +1,96 @@
+<div class="max-w-4xl mx-auto p-6">
+  <h1 class="text-3xl font-bold text-center mb-8">Weather Forecast</h1>
+  
+  <%= form_with url: forecasts_path, method: :get, data: { turbo_frame: "forecast_results" }, class: "mb-8" do |f| %>
+    <div class="flex flex-col md:flex-row gap-4">
+      <div class="flex-grow">
+        <%= f.text_field :address, 
+          value: @address, 
+          placeholder: "Enter an address or zip code", 
+          class: "w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+      <div>
+        <%= f.submit "Get Forecast", 
+          class: "w-full md:w-auto px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors" %>
+      </div>
+    </div>
+  <% end %>
+  
+  <% if flash[:alert] %>
+    <div class="p-4 mb-6 bg-red-100 border border-red-400 text-red-700 rounded-md">
+      <%= flash[:alert] %>
+    </div>
+  <% end %>
+  
+  <%= turbo_frame_tag "forecast_results" do %>
+    <% if @forecast %>
+      <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <!-- Location and timestamp info -->
+        <div class="p-6 border-b">
+          <div class="flex justify-between items-start">
+            <div>
+              <h2 class="text-2xl font-bold"><%= @forecast.address %></h2>
+              <p class="text-gray-500">
+                <%= @forecast.queried_at.strftime("%A, %B %d, %Y at %I:%M %p") %>
+              </p>
+            </div>
+            <% if @forecast.cached? %>
+              <div class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                Cached Result
+              </div>
+            <% end %>
+          </div>
+        </div>
+        
+        <!-- Current conditions -->
+        <div class="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="text-xl opacity-90"><%= @forecast.conditions.titleize %></p>
+              <h3 class="text-5xl font-bold mt-1"><%= @forecast.current_temp.round %>°F</h3>
+            </div>
+            <div class="text-right">
+              <div class="flex items-center justify-end gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-xl"><%= @forecast.high_temp.round %>°</span>
+              </div>
+              <div class="flex items-center justify-end gap-1 mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-xl"><%= @forecast.low_temp.round %>°</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Extended forecast -->
+        <% if @forecast.extended_forecast.present? %>
+          <div class="p-6">
+            <h4 class="text-lg font-semibold mb-4">Extended Forecast</h4>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <% @forecast.extended_forecast_data.each do |day| %>
+                <div class="p-4 bg-gray-50 rounded-md text-center">
+                  <p class="font-medium"><%= day['day_name'] %></p>
+                  <p class="text-sm text-gray-500"><%= day['date'] %></p>
+                  <div class="my-2">
+                    <span class="font-medium text-red-600"><%= day['high'].round %>°</span> / 
+                    <span class="font-medium text-blue-600"><%= day['low'].round %>°</span>
+                  </div>
+                  <p class="text-sm text-gray-700"><%= day['conditions'].first %></p>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        
+        <!-- View details link -->
+        <div class="p-4 bg-gray-50 border-t text-center">
+          <%= link_to "View Details", forecast_path(@forecast), class: "text-blue-600 hover:text-blue-800" %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>

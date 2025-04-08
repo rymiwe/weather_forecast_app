@@ -1,0 +1,7 @@
+# Example environment variables configuration
+# Copy this file to env.yml and fill in your API key
+# Do not commit the actual env.yml file with your API key
+
+# OpenWeatherMap API key
+# Get yours at: https://openweathermap.org/api
+OPENWEATHERMAP_API_KEY: 'your_api_key_here'

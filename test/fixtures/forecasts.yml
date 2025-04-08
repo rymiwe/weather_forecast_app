@@ -1,0 +1,34 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+# First forecast for New York
+one:
+  address: "123 Broadway, New York, NY 10001"
+  zip_code: "10001"
+  current_temp: 72.5
+  high_temp: 78.0
+  low_temp: 65.0
+  conditions: "Partly Cloudy"
+  extended_forecast: '[{"date":"2025-04-08","day_name":"Tuesday","high":75,"low":62,"conditions":["partly cloudy"]},{"date":"2025-04-09","day_name":"Wednesday","high":77,"low":64,"conditions":["sunny"]}]'
+  queried_at: <%= Time.current %>
+
+# Second forecast for Chicago with a different zip code
+two:
+  address: "456 Michigan Ave, Chicago, IL 60611"
+  zip_code: "60611"
+  current_temp: 68.0
+  high_temp: 73.0
+  low_temp: 59.0
+  conditions: "Sunny"
+  extended_forecast: '[{"date":"2025-04-08","day_name":"Tuesday","high":72,"low":58,"conditions":["sunny"]},{"date":"2025-04-09","day_name":"Wednesday","high":74,"low":60,"conditions":["partly cloudy"]}]'
+  queried_at: <%= 10.minutes.ago %>
+
+# Old forecast that should not be in cache
+old_forecast:
+  address: "789 Market St, San Francisco, CA 94103"
+  zip_code: "94103"
+  current_temp: 65.0
+  high_temp: 70.0
+  low_temp: 55.0
+  conditions: "Foggy"
+  extended_forecast: '[{"date":"2025-04-08","day_name":"Tuesday","high":68,"low":54,"conditions":["foggy"]},{"date":"2025-04-09","day_name":"Wednesday","high":69,"low":56,"conditions":["partly cloudy"]}]'
+  queried_at: <%= 40.minutes.ago %>
