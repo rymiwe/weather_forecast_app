@@ -6,8 +6,10 @@
       <div class="flex-grow">
         <%= f.text_field :address, 
           value: @address, 
-          placeholder: "Enter an address or zip code", 
-          class: "w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          placeholder: "Enter location or zip code", 
+          class: "w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500",
+          size: 30,
+          aria: { label: "Location input" } %>
       </div>
       <div>
         <%= f.submit "Get Forecast", 
@@ -88,7 +90,7 @@
         
         <!-- View details link -->
         <div class="p-4 bg-gray-50 border-t text-center">
-          <%= link_to "View Details", forecast_path(@forecast), class: "text-blue-600 hover:text-blue-800" %>
+          <%= link_to "View Details", forecast_path(@forecast), class: "text-blue-600 hover:text-blue-800", data: { turbo_frame: "_top" } %>
         </div>
       </div>
     <% end %>

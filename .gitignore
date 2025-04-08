@@ -11,6 +11,9 @@
 /.env*
 !/.env*.erb
 
+# Ignore custom environment configuration with API keys
+/config/env.yml
+
 # Ignore all logfiles and tempfiles.
 /log/*
 /tmp/*
