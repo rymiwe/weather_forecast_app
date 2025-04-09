@@ -49,7 +49,20 @@ gem "bootsnap", require: false
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
-  gem "debug", platforms: %i[ mri mswin mswin64 mingw x64_mingw ]
+  gem "debug", platforms: %i[ mri mswin mingw x64_mingw ]
+  
+  # RSpec for testing
+  gem "rspec-rails"
+  gem "factory_bot_rails"
+  gem "rails-controller-testing" # For asserting template and request assignments
+end
+
+group :test do
+  # Use Capybara for system testing
+  gem "capybara"
+  gem "selenium-webdriver", "~> 4.10.0" # Specify compatible version for webdrivers
+  gem "webdrivers", "~> 5.3.0" # For auto-installing drivers like Chrome, Firefox, etc.
+  gem "launchy"                # For debugging with save_and_open_page
 end
 
 group :development do
@@ -61,10 +74,4 @@ group :development do
 
   # Speed up commands on slow machines / big apps [https://github.com/rails/spring]
   # gem "spring"
-end
-
-group :test do
-  # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
-  gem "capybara"
-  gem "selenium-webdriver"
 end
