@@ -16,6 +16,8 @@ This application is available on GitHub: https://github.com/rymiwe/weather_forec
 - Show indicator when results are pulled from cache
 - Modern, responsive UI using Tailwind CSS
 - Enterprise-ready configuration through environment variables
+- Smart temperature unit selection based on geographic region
+- API rate limiting to respect service provider constraints
 
 ## Technical Stack
 
@@ -195,7 +197,7 @@ The application is designed with enterprise-level configurability in mind. All c
 |---------------------|-------------|---------------|---------|
 | `OPENWEATHERMAP_API_KEY` | Your OpenWeatherMap API key | None (Required) | `a1b2c3d4e5f6g7h8i9j0...` |
 | `WEATHER_CACHE_DURATION_MINUTES` | Duration (in minutes) to cache weather forecasts | 30 | `60` |
-| `WEATHER_DEFAULT_UNIT` | Default temperature unit system | `imperial` (Fahrenheit) | `metric` (Celsius) |
+| `WEATHER_DEFAULT_UNIT` | Default temperature unit system | `nil` (auto-detect by IP) | `metric` (Celsius) |
 | `WEATHER_API_TIMEOUT_SECONDS` | API request timeout in seconds | 10 | `5` |
 | `WEATHER_MAX_REQUESTS_PER_MINUTE` | Maximum API requests per minute | 60 | `30` |
 | `WEATHER_FORECAST_DAYS` | Number of days in extended forecast | 5 | `7` |
@@ -237,6 +239,77 @@ For adding new configurable parameters, follow this pattern in `config/applicati
 config.x.weather = ActiveSupport::InheritableOptions.new
 config.x.weather.cache_duration = ENV.fetch('WEATHER_CACHE_DURATION_MINUTES', 30).to_i.minutes
 ```
+
+## Smart Temperature Unit Selection
+
+The application implements intelligent temperature unit selection to provide a better user experience:
+
+### IP-Based Detection
+
+1. **Geographic Intelligence**: Automatically detects user's location via IP address
+   - Uses the Geocoder gem to determine country from IP
+   - Defaults to Fahrenheit (imperial) for US, Liberia, Myanmar
+   - Defaults to Celsius (metric) for all other countries
+   - Handles private/local IPs appropriately
+
+2. **Preference Hierarchy**:
+   - User's explicit preference (stored in session) takes highest priority
+   - Environment configuration (`WEATHER_DEFAULT_UNIT`) is second priority
+   - IP-based detection is used as fallback
+   - User can toggle between units at any time via UI controls
+
+3. **Implementation Details**:
+   ```ruby
+   def temperature_units
+     session[:temperature_units] || 
+       Rails.configuration.x.weather.default_unit || 
+       UserLocationService.units_for_ip(request.remote_ip)
+   end
+   ```
+
+4. **Testing**:
+   - Comprehensive specs for all scenarios including edge cases
+   - Mocked geocoding responses for consistent test behavior
+   - System tests verify UI behavior and preference persistence
+
+## API Rate Limiting
+
+To ensure the application remains within API provider limits and provides a stable experience:
+
+### Implementation
+
+1. **Request Throttling**: Enforces configurable rate limits per service
+   - Default limit for OpenWeatherMap API: 60 requests per minute (free tier)
+   - Configurable via `WEATHER_MAX_REQUESTS_PER_MINUTE` environment variable
+
+2. **Time-Based Tracking**: Uses minute-based windows for counting requests
+   - Each minute gets a fresh quota of allowed requests
+   - Different services are tracked separately
+
+3. **Graceful Degradation**: When limits are reached
+   - Returns appropriate error messages to users
+   - Logs rate limit events for monitoring
+   - Prevents unnecessary API calls that would be rejected
+
+4. **Memory-Based Storage**: Uses in-memory counter with mutex for thread safety
+   - In production, this could be extended to use Redis for distributed rate limiting
+
+5. **Implementation Code**:
+   ```ruby
+   def self.allow_request?(service_name)
+     max_requests = Rails.configuration.x.weather.max_requests_per_minute || DEFAULT_MAX_REQUESTS_PER_MINUTE
+     current_minute = Time.current.strftime('%Y-%m-%d-%H-%M')
+     key = "#{service_name}:#{current_minute}"
+     
+     # Check if under limit before incrementing counter
+     if current_count(key) < max_requests
+       increment_counter(key)
+       true
+     else
+       false
+     end
+   end
+   ```
 
 ## Testing
 
