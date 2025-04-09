@@ -57,7 +57,7 @@ class MockWeatherService
       low_temp = low_temp_f
     end
     
-    extended_forecast = mock_extended_forecast(random, units)
+    extended_forecast = mock_extended_forecast(random, units: units)
     
     {
       address: address,
