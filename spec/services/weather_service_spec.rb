@@ -10,24 +10,6 @@ RSpec.describe WeatherService do
     end
   end
   
-  describe "#extract_postal_code_from_address" do
-    it "returns postal code correctly when present" do
-      location_data = {
-        'local_names' => {
-          'postcode' => '98101'
-        }
-      }
-      
-      result = service.send(:extract_postal_code_from_address, location_data)
-      expect(result).to eq('98101')
-    end
-    
-    it "returns nil when postal code is missing" do
-      result = service.send(:extract_postal_code_from_address, {})
-      expect(result).to be_nil
-    end
-  end
-  
   describe "#get_by_address" do
     context "when geocoding fails" do
       it "returns an error hash" do
@@ -116,6 +98,39 @@ RSpec.describe WeatherService do
         
         result = service.send(:extract_todays_temps, forecast_data)
         expect(result).to include(high: 58.0, low: 55.0)
+      end
+    end
+    
+    describe "#get_zip_code" do
+      it "uses ZipCodeExtractionService for postal code extraction" do
+        coordinates = { lat: 47.6062, lon: -122.3321 }
+        response_data = [{ 'name' => 'Seattle' }]
+        
+        # Mock the API response
+        allow(service).to receive(:make_request).and_return(response_data)
+        
+        # Mock the ZipCodeExtractionService service
+        expect(ZipCodeExtractionService).to receive(:extract_from_location_data)
+          .with(response_data[0]).and_return('98101')
+        
+        # Call the method
+        result = service.send(:get_zip_code, coordinates)
+        
+        # Verify the result
+        expect(result).to eq('98101')
+      end
+      
+      it "returns nil when API response is empty" do
+        coordinates = { lat: 47.6062, lon: -122.3321 }
+        
+        # Mock empty API response
+        allow(service).to receive(:make_request).and_return([])
+        
+        # Call the method
+        result = service.send(:get_zip_code, coordinates)
+        
+        # Verify nil is returned
+        expect(result).to be_nil
       end
     end
   end

@@ -4,24 +4,26 @@
 # Extracted to follow DRY principles across the application
 class TemperatureConversionService
   # Convert temperature from Fahrenheit to Celsius
-  # @param fahrenheit [Float] Temperature in Fahrenheit
-  # @return [Float] Temperature in Celsius, rounded to one decimal
+  # @param fahrenheit [Float, Integer] Temperature in Fahrenheit
+  # @return [Integer] Temperature in Celsius, rounded to nearest integer
   def self.fahrenheit_to_celsius(fahrenheit)
-    ((fahrenheit - 32) * 5.0 / 9.0).round(1)
+    return nil if fahrenheit.nil?
+    ((fahrenheit - 32) * 5.0 / 9.0).round
   end
   
   # Convert temperature from Celsius to Fahrenheit
-  # @param celsius [Float] Temperature in Celsius
-  # @return [Float] Temperature in Fahrenheit, rounded to one decimal
+  # @param celsius [Integer] Temperature in Celsius
+  # @return [Integer] Temperature in Fahrenheit, rounded to nearest integer
   def self.celsius_to_fahrenheit(celsius)
-    ((celsius * 9.0 / 5.0) + 32).round(1)
+    return nil if celsius.nil?
+    ((celsius * 9.0 / 5.0) + 32).round
   end
   
   # Convert temperature based on source and target units
-  # @param temperature [Float] Temperature value to convert
+  # @param temperature [Float, Integer] Temperature value to convert
   # @param from [String] Source unit ('imperial' or 'metric')
   # @param to [String] Target unit ('imperial' or 'metric')
-  # @return [Float] Converted temperature value
+  # @return [Integer] Converted temperature value
   def self.convert(temperature, from:, to:)
     return temperature if from == to || !temperature
     

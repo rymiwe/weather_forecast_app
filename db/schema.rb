@@ -10,16 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_04_07_205037) do
+ActiveRecord::Schema[7.1].define(version: 2025_04_09_223828) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
   create_table "forecasts", force: :cascade do |t|
     t.string "address"
     t.string "zip_code"
-    t.float "current_temp"
-    t.float "high_temp"
-    t.float "low_temp"
+    t.integer "current_temp"
+    t.integer "high_temp"
+    t.integer "low_temp"
     t.string "conditions"
     t.text "extended_forecast"
     t.datetime "queried_at"

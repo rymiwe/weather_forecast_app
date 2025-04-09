@@ -16,8 +16,8 @@ class MockWeatherService
   def get_by_address(address, units: 'imperial')
     Rails.logger.debug "MockWeatherService.get_by_address called with: #{address}"
     
-    # Extract zip code if present
-    zip_code = extract_zip_code_from_address(address)
+    # Extract zip code if present using the centralized service
+    zip_code = ZipCodeExtractionService.extract_from_address(address)
     
     # For demo purposes, return weather data specific to known zip codes
     # or generate random data for others
@@ -29,33 +29,22 @@ class MockWeatherService
   
   private
   
-  # Extract zip code from address
-  def extract_zip_code_from_address(address)
-    match = address.to_s.match(/\b\d{5}(?:-\d{4})?\b/)
-    match ? match[0] : nil
-  end
-  
   # Generate mock weather data
   def mock_weather_data_for(address, zip_code, units)
     # Create some variety based on zip code or address to make it more realistic
     seed = zip_code ? zip_code.to_i : address.hash
     random = Random.new(seed)
     
-    # Generate temperatures in Fahrenheit (imperial units)
-    current_temp_f = 50 + random.rand(40)
-    high_temp_f = current_temp_f + 5 + random.rand(10)
-    low_temp_f = current_temp_f - 5 - random.rand(15)
+    # Always generate temperatures in Fahrenheit (imperial units) first
+    current_temp_f = 60 + random.rand(30)
+    high_temp_f = current_temp_f + random.rand(15)
+    low_temp_f = current_temp_f - random.rand(15)
     
-    # Convert to Celsius if metric units requested
-    if units.to_s.downcase == 'metric'
-      current_temp = fahrenheit_to_celsius(current_temp_f)
-      high_temp = fahrenheit_to_celsius(high_temp_f)
-      low_temp = fahrenheit_to_celsius(low_temp_f)
-    else
-      current_temp = current_temp_f
-      high_temp = high_temp_f
-      low_temp = low_temp_f
-    end
+    # Always convert to Celsius for storage (normalized format)
+    # The view layer will handle conversion to Fahrenheit if needed
+    current_temp = TemperatureConversionService.fahrenheit_to_celsius(current_temp_f)
+    high_temp = TemperatureConversionService.fahrenheit_to_celsius(high_temp_f)
+    low_temp = TemperatureConversionService.fahrenheit_to_celsius(low_temp_f)
     
     extended_forecast = mock_extended_forecast(random, units: units)
     
@@ -65,6 +54,7 @@ class MockWeatherService
       current_temp: current_temp,
       high_temp: high_temp,
       low_temp: low_temp,
+      unit: units.to_s.downcase == 'metric' ? 'C' : 'F',
       conditions: ["Sunny", "Partly Cloudy", "Cloudy", "Light Rain", "Thunderstorms"].sample(random: random),
       extended_forecast: extended_forecast,
       queried_at: Time.now
@@ -79,12 +69,13 @@ class MockWeatherService
       date = today + (i + 1).days
       
       # Generate temperatures in Fahrenheit first
-      high_f = 45 + random.rand(40)
-      low_f = 30 + random.rand(30)
+      high_f = 60 + random.rand(30)
+      low_f = 45 + random.rand(30)
       
-      # Convert if metric requested
-      high = (units.to_s.downcase == 'metric') ? fahrenheit_to_celsius(high_f) : high_f
-      low = (units.to_s.downcase == 'metric') ? fahrenheit_to_celsius(low_f) : low_f
+      # Always convert to Celsius for storage (normalized format)
+      # The view layer will handle conversion to Fahrenheit if needed
+      high = TemperatureConversionService.fahrenheit_to_celsius(high_f)
+      low = TemperatureConversionService.fahrenheit_to_celsius(low_f)
       
       {
         date: date.to_s,
@@ -97,12 +88,5 @@ class MockWeatherService
     end
     
     forecast_days.to_json
-  end
-  
-  # Convert temperature from Fahrenheit to Celsius
-  # @param fahrenheit [Float] Temperature in Fahrenheit
-  # @return [Float] Temperature in Celsius, rounded to one decimal
-  def fahrenheit_to_celsius(fahrenheit)
-    ((fahrenheit - 32) * 5.0 / 9.0).round(1)
   end
 end

@@ -60,18 +60,8 @@ class WeatherService
     return nil unless response && !response.empty?
     
     Rails.logger.debug "Reverse geocoding response: #{response.inspect}"
-    # Try to get the postal code from the response
-    response[0]['zip'] || extract_postal_code_from_address(response[0])
-  end
-
-  # Extract postal code from address components
-  # @param location_data [Hash] Location data from reverse geocoding
-  # @return [String, nil] Postal code or nil if not found
-  def extract_postal_code_from_address(location_data)
-    return nil unless location_data['local_names'] && location_data['local_names']['postcode']
-    
-    Rails.logger.debug "Extracted postal code: #{location_data['local_names']['postcode']}"
-    location_data['local_names']['postcode']
+    # Use the centralized ZIP code extraction service to extract postal code
+    ZipCodeExtractionService.extract_from_location_data(response[0])
   end
 
   # Fetch weather data for coordinates

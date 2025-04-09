@@ -4,7 +4,7 @@
 # Follows DRY principles by centralizing temperature formatting logic
 module TemperatureHelper
   # Format a temperature for display with proper units
-  # @param temperature [Float] The temperature value in Celsius
+  # @param temperature [Integer] The temperature value in Celsius
   # @param user_preference [String] The user's unit preference ('metric' or 'imperial')
   # @param options [Hash] Additional options for formatting
   # @option options [Integer] :precision Number of decimal places (default: 0)
@@ -18,10 +18,10 @@ module TemperatureHelper
     show_unit = options.fetch(:show_unit, true)
     size_class = size_class_for(options.fetch(:size, nil))
     
-    # Ensure we have a numeric value
-    temperature = temperature.to_f
+    # Ensure we have a numeric value - but we now expect integer in the database
+    temperature = temperature.to_i
     
-    # Convert if user prefers imperial (our database stores everything in Celsius)
+    # Convert if user prefers imperial (our database stores everything in Celsius as integers)
     displayed_temp = if user_preference.to_s == 'imperial'
                        TemperatureConversionService.celsius_to_fahrenheit(temperature)
                      else
@@ -34,8 +34,8 @@ module TemperatureHelper
                     ''
                   end
     
-    # Apply formatting
-    temp_value = displayed_temp.round(precision)
+    # No need for rounding decimals anymore since we're using integers
+    temp_value = displayed_temp
     
     # Add CSS class for styling if size is specified
     if size_class.present?
