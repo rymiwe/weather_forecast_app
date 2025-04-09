@@ -117,6 +117,42 @@ RSpec.describe "Weather Forecasts", type: :system do
       # Verify cached results are displayed
       expect(page).to have_content(cached_forecast.address)
       expect(page).to have_content("Cached Result")
+      
+      # View the details to check technical cache information
+      click_link "View Details"
+      
+      # Check for cache status in the technical information section
+      within "div.p-6.bg-gray-50.border-t" do
+        expect(page).to have_content("CACHE STATUS")
+        expect(page).to have_content("From Cache")
+        expect(page).to have_content("CACHE EXPIRES")
+        # The cache should expire after the configurable cache duration
+        expected_expiry = (cached_forecast.queried_at + Rails.configuration.x.weather.cache_duration).strftime("%I:%M %p")
+        expect(page).to have_content(expected_expiry.sub(/^0/, ''))  # Remove leading zero if present
+      end
+    end
+    
+    it "distinguishes between fresh and cached data" do
+      # Create a very recent forecast (considered "fresh")
+      fresh_forecast = create(:forecast, :seattle, queried_at: 30.seconds.ago)
+      
+      # Visit the homepage and search with the fresh forecast's zip code
+      visit root_path
+      fill_in "address", with: fresh_forecast.zip_code
+      click_button "Get Forecast"
+      
+      # Verify the forecast is shown without a "Cached Result" indicator
+      expect(page).to have_content(fresh_forecast.address)
+      expect(page).not_to have_content("Cached Result")
+      
+      # View the details
+      click_link "View Details"
+      
+      # Verify that technical information shows "Fresh Data" for cache status
+      within "div.p-6.bg-gray-50.border-t" do
+        expect(page).to have_content("CACHE STATUS")
+        expect(page).to have_content("Fresh Data")
+      end
     end
   end
   
@@ -274,6 +310,58 @@ RSpec.describe "Weather Forecasts", type: :system do
       # Verify we're back on the search page
       expect(page).to have_current_path(forecasts_path)
       expect(page).to have_field("address")
+    end
+    
+    it "handles the caching lifecycle correctly", js: true do
+      # Create a cached forecast
+      cached_forecast = create(:forecast, :chicago, queried_at: 20.minutes.ago)
+      
+      # Mock data for a fresh result for the same location
+      fresh_data = {
+        address: cached_forecast.address,
+        zip_code: cached_forecast.zip_code,
+        current_temp: cached_forecast.current_temp + 2.0, # Different temp to distinguish from cached
+        high_temp: cached_forecast.high_temp,
+        low_temp: cached_forecast.low_temp,
+        conditions: cached_forecast.conditions,
+        extended_forecast: cached_forecast.extended_forecast,
+        queried_at: Time.current
+      }
+      
+      # Stub the service to return our fresh data when called
+      allow_any_instance_of(MockWeatherService).to receive(:get_by_address)
+        .with(cached_forecast.zip_code)
+        .and_return(fresh_data)
+      
+      # 1. First search should use cached data
+      visit root_path
+      fill_in "address", with: cached_forecast.zip_code
+      click_button "Get Forecast"
+      
+      # Verify we see cached data
+      expect(page).to have_content(cached_forecast.address)
+      expect(page).to have_content("#{cached_forecast.current_temp.round}°F")
+      expect(page).to have_content("Cached Result")
+      
+      # 2. For testing purposes, let's simulate the cache expiring by updating the cached_forecast
+      # This approach allows us to test the caching behavior without waiting for actual time to pass
+      cached_forecast.update(queried_at: (Rails.configuration.x.weather.cache_duration + 5.minutes).ago)
+      
+      # Now when we search again, it should show fresh data
+      visit root_path
+      fill_in "address", with: cached_forecast.zip_code
+      click_button "Get Forecast"
+      
+      # Verify we now see fresh data (different temperature)
+      expect(page).to have_content("#{(cached_forecast.current_temp + 2.0).round}°F")
+      expect(page).not_to have_content("Cached Result")
+      
+      # Verify the technical information on the details page
+      click_link "View Details"
+      within "div.p-6.bg-gray-50.border-t" do
+        expect(page).to have_content("CACHE STATUS")
+        expect(page).to have_content("Fresh Data")
+      end
     end
   end
 end

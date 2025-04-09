@@ -4,7 +4,7 @@ class Forecast < ApplicationRecord
   validates :zip_code, presence: true, uniqueness: { scope: :queried_at }
   
   # Scopes
-  scope :recent, -> { where('queried_at >= ?', 30.minutes.ago).order(queried_at: :desc) }
+  scope :recent, -> { where('queried_at >= ?', Rails.configuration.x.weather.cache_duration.ago).order(queried_at: :desc) }
   
   # Class methods for caching functionality
   
@@ -33,10 +33,18 @@ class Forecast < ApplicationRecord
     )
   end
   
-  # Checks if the forecast data is from cache
-  # @return [Boolean] True if data is from cache
+  # Checks if the forecast data is considered fresh based on the queried_at timestamp
+  # @return [Boolean] True if data is from cache (older than 1 minute but within cache duration)
   def cached?
-    (Time.current - queried_at) > 1.minute
+    age = Time.current - queried_at
+    # Data is considered "cached" if it's older than 1 minute but still within cache duration
+    age > 1.minute && age < Rails.configuration.x.weather.cache_duration
+  end
+
+  # Calculates when the cache will expire
+  # @return [Time] The time when the cache will expire
+  def cache_expires_at
+    queried_at + Rails.configuration.x.weather.cache_duration
   end
   
   # Get extended forecast data as parsed JSON

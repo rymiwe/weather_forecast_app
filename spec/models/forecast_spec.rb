@@ -52,6 +52,33 @@ RSpec.describe Forecast, type: :model do
         expect(cached).to eq(new_forecast)
       end
     end
+    
+    it "adapts to the configurable cache duration" do
+      # Store the original value
+      original_duration = Rails.configuration.x.weather.cache_duration
+      
+      begin
+        # Temporarily change the cache duration for this test
+        shorter_duration = 10.minutes
+        Rails.configuration.x.weather.cache_duration = shorter_duration
+        
+        # A forecast that would be in cache under the default 30-minute rule
+        # but is too old for the new 10-minute rule
+        older_forecast = create(:forecast, zip_code: "98101", queried_at: 15.minutes.ago)
+        
+        # A forecast that's within the new cache duration
+        newer_forecast = create(:forecast, zip_code: "60601", queried_at: 5.minutes.ago)
+        
+        # The older forecast should not be found because it's outside the shorter cache window
+        expect(Forecast.find_cached("98101")).to be_nil
+        
+        # The newer forecast should be found because it's within the shorter cache window
+        expect(Forecast.find_cached("60601")).to eq(newer_forecast)
+      ensure
+        # Always restore the original value after the test
+        Rails.configuration.x.weather.cache_duration = original_duration
+      end
+    end
   end
   
   describe "#cached?" do
@@ -63,6 +90,39 @@ RSpec.describe Forecast, type: :model do
     it "returns false when forecast is less than 1 minute old" do
       forecast = build(:forecast, queried_at: 30.seconds.ago)
       expect(forecast.cached?).to be false
+    end
+    
+    it "returns false when forecast is older than the cache duration" do
+      # Create a forecast with a timestamp old enough to be outside the cache duration
+      forecast = build(:forecast, queried_at: (Rails.configuration.x.weather.cache_duration + 1.minute).ago)
+      expect(forecast.cached?).to be false
+    end
+  end
+  
+  describe "#cache_expires_at" do
+    it "returns the time when the cache expires" do
+      forecast = build(:forecast, queried_at: Time.current)
+      expect(forecast.cache_expires_at).to be_within(1.second).of(
+        forecast.queried_at + Rails.configuration.x.weather.cache_duration
+      )
+    end
+    
+    it "changes with the configurable cache duration" do
+      # Store the original value
+      original_duration = Rails.configuration.x.weather.cache_duration
+      
+      begin
+        # Change the cache duration for this test
+        Rails.configuration.x.weather.cache_duration = 15.minutes
+        
+        forecast = build(:forecast, queried_at: Time.current)
+        expect(forecast.cache_expires_at).to be_within(1.second).of(
+          forecast.queried_at + 15.minutes
+        )
+      ensure
+        # Always restore the original value after the test
+        Rails.configuration.x.weather.cache_duration = original_duration
+      end
     end
   end
   

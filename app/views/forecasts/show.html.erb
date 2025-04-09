@@ -105,7 +105,7 @@
         </div>
         <div>
           <h5 class="text-sm font-medium text-gray-500">CACHE EXPIRES</h5>
-          <p class="mt-1"><%= (@forecast.queried_at + 30.minutes).strftime("%I:%M %p") %></p>
+          <p class="mt-1"><%= @forecast.cache_expires_at.strftime("%I:%M %p") %></p>
         </div>
       </div>
     </div>
