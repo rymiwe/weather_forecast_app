@@ -21,7 +21,18 @@ module WeatherForecastApp
 
     # Application specific configuration
     config.x.weather = ActiveSupport::InheritableOptions.new
+    
+    # Cache duration in minutes (default: 30 minutes)
     config.x.weather.cache_duration = ENV.fetch('WEATHER_CACHE_DURATION_MINUTES', 30).to_i.minutes
+    
+    # Default temperature unit (nil means detect from IP)
+    config.x.weather.default_unit = ENV.fetch('WEATHER_DEFAULT_UNIT', nil)
+    
+    # Fixed number of forecast days (free tier supports 5)
+    config.x.weather.forecast_days = 5
+    
+    # Maximum API requests per minute (free tier: 60)
+    config.x.weather.max_requests_per_minute = ENV.fetch('WEATHER_MAX_REQUESTS_PER_MINUTE', 60).to_i
 
     # Configuration for the application, engines, and railties goes here.
     #
