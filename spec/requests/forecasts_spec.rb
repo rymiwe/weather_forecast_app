@@ -44,6 +44,13 @@ RSpec.describe "Forecasts", type: :request do
       expect(response.body).to include("Seattle, WA 98101")
       expect(response.body).to include("53°F")  # Rounded from 52.5
       expect(response.body).to include("rain") 
+      
+      # Verify high/low temperatures
+      expect(response.body).to include("58°")  # Just the degree symbol for high temp
+      expect(response.body).to include("48°")  # Just the degree symbol for low temp
+      
+      # Verify at least the presence of extended forecast section
+      expect(response.body).to include("Extended Forecast")
     end
     
     it "handles full street addresses" do
@@ -72,6 +79,13 @@ RSpec.describe "Forecasts", type: :request do
       expect(response.body).to include("123 Pine St, San Francisco, CA 94111")
       expect(response.body).to include("64°F")
       expect(response.body).to include("sunny")
+      
+      # Verify high/low temperatures
+      expect(response.body).to include("70°")  # Just the degree symbol for high temp
+      expect(response.body).to include("58°")  # Just the degree symbol for low temp
+      
+      # Verify at least the presence of extended forecast section
+      expect(response.body).to include("Extended Forecast")
     end
     
     it "uses cached forecast when forecast exists for zip code" do
@@ -131,6 +145,23 @@ RSpec.describe "Forecasts", type: :request do
       expect(response.body).to include("Detailed Forecast")
       expect(response.body).to include(forecast.address)
       expect(response.body).to include("#{forecast.current_temp.round}°F")
+      
+      # Verify high/low temperatures
+      expect(response.body).to include("#{forecast.high_temp.round}°")
+      expect(response.body).to include("#{forecast.low_temp.round}°")
+      
+      # Verify extended forecast section
+      expect(response.body).to include("5-Day Forecast")
+      
+      # Parse the extended forecast data and check for key elements
+      if forecast.extended_forecast.present?
+        # If we're using actual extended forecast data in the factory
+        extended_data = JSON.parse(forecast.extended_forecast)
+        if extended_data.any?
+          expect(response.body).to include(extended_data.first['day_name'])
+        end
+      end
+      
       expect(response.body).to include("Back to Search")
       expect(response.body).to include("Technical Information")
     end

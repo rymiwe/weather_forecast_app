@@ -48,6 +48,11 @@ RSpec.describe "Weather Forecasts", type: :system do
       # Verify results are displayed
       expect(page).to have_content("Seattle, WA 98101")
       expect(page).to have_content("53°F") # Rounded from 52.5
+      
+      # Verify high/low temperatures are shown
+      expect(page).to have_content("58°")
+      expect(page).to have_content("48°")
+      
       expect(page).to have_link("View Details")
     end
     
@@ -78,6 +83,10 @@ RSpec.describe "Weather Forecasts", type: :system do
       expect(page).to have_content("123 Main St, Portland, OR 97201")
       expect(page).to have_content("59°F")
       expect(page).to have_content("cloudy")
+      
+      # Verify high/low temperatures are shown
+      expect(page).to have_content("64°")
+      expect(page).to have_content("52°")
     end
     
     it "shows an error message for invalid location" do
@@ -127,6 +136,20 @@ RSpec.describe "Weather Forecasts", type: :system do
       expect(page).to have_content("#{forecast.high_temp.round}°")
       expect(page).to have_content("#{forecast.low_temp.round}°")
       
+      # Verify extended forecast section exists
+      expect(page).to have_content("5-Day Forecast")
+      
+      # Parse and check the extended forecast data if present
+      if forecast.extended_forecast.present?
+        extended_data = JSON.parse(forecast.extended_forecast)
+        if extended_data.any?
+          day = extended_data.first
+          expect(page).to have_content(day["day_name"])
+          expect(page).to have_content("#{day["high"]}°")
+          expect(page).to have_content("#{day["low"]}°")
+        end
+      end
+      
       # Verify other elements
       expect(page).to have_content("Technical Information")
       expect(page).to have_content("FORECAST ID")
@@ -171,6 +194,11 @@ RSpec.describe "Weather Forecasts", type: :system do
       
       # Verify results are displayed
       expect(page).to have_content("New York, NY 10001")
+      expect(page).to have_content("62°F")
+      
+      # Verify high/low temps
+      expect(page).to have_content("68°")
+      expect(page).to have_content("55°")
       
       # Click through to details
       click_link "View Details"
@@ -178,6 +206,13 @@ RSpec.describe "Weather Forecasts", type: :system do
       # Verify we're on the details page
       expect(page).to have_content("Detailed Forecast")
       expect(page).to have_content("New York, NY 10001")
+      
+      # Check extended forecast data
+      expect(page).to have_content("5-Day Forecast")
+      expect(page).to have_content("Tuesday") # From the mock data day_name
+      expect(page).to have_content("65°") # From the mock data high
+      expect(page).to have_content("54°") # From the mock data low
+      expect(page).to have_content("sunny") # From the mock data conditions
       
       # Go back to search
       click_link "Back to Search"
@@ -215,12 +250,23 @@ RSpec.describe "Weather Forecasts", type: :system do
       expect(page).to have_content("45°F")
       expect(page).to have_content("windy")
       
+      # Verify high/low temps
+      expect(page).to have_content("52°")
+      expect(page).to have_content("38°")
+      
       # Click through to details
       click_link "View Details"
       
       # Verify we're on the details page with full address
       expect(page).to have_content("Detailed Forecast")
       expect(page).to have_content("123 Broadway, Chicago, IL 60601")
+      
+      # Check extended forecast data
+      expect(page).to have_content("5-Day Forecast")
+      expect(page).to have_content("Tuesday") # From the mock data day_name
+      expect(page).to have_content("52°") # From the mock data high
+      expect(page).to have_content("38°") # From the mock data low
+      expect(page).to have_content("windy") # From the mock data conditions
       
       # Go back to search
       click_link "Back to Search"
