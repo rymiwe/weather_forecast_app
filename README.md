@@ -132,6 +132,61 @@ The application implements a database-backed caching mechanism:
 4. If no cache exists, the system fetches fresh data from the OpenWeatherMap API
 5. All weather data is saved with a timestamp for cache expiration calculation
 
+### Caching Strategy Details
+
+The application implements a **database-backed caching** mechanism:
+
+#### Current Implementation
+
+- Weather forecast data is stored in the PostgreSQL database
+- The `forecasts` table stores complete forecast records with ZIP code as a lookup key
+- Records include a `queried_at` timestamp used to determine cache freshness
+- The configurable cache duration (`WEATHER_CACHE_DURATION_MINUTES`) determines how long forecasts are considered valid
+- A database query using a time-based scope identifies valid cached entries:
+  ```ruby
+  scope :recent, -> { where('queried_at >= ?', Rails.configuration.x.weather.cache_duration.ago).order(queried_at: :desc) }
+  ```
+
+#### Advantages of Database Caching
+
+- **Simplicity**: No additional infrastructure requirements beyond the existing database
+- **Persistence**: Cached data survives application restarts and deployments
+- **Data Retention**: Historical weather data remains available for analysis and reporting
+- **Transactional Integrity**: Cache operations participate in database transactions
+- **Admin Visibility**: Cache state is easily inspectable via standard database tools
+
+#### Enterprise Scalability Considerations
+
+For high-traffic enterprise deployments, consider implementing a multi-tiered caching strategy:
+
+1. **L1 Cache (Memory)**: Add Rails.cache with Redis/Memcached as the cache store
+   ```ruby
+   # Example implementation in config/environments/production.rb
+   config.cache_store = :redis_cache_store, { url: ENV['REDIS_URL'] }
+   ```
+
+2. **L2 Cache (Database)**: Retain the current implementation as a fallback
+   ```ruby
+   # First check memory cache, then database cache
+   def self.find_by_zip(zip_code)
+     Rails.cache.fetch("forecast/#{zip_code}", expires_in: Rails.configuration.x.weather.cache_duration) do
+       find_cached(zip_code) || fetch_and_save_forecast(zip_code)
+     end
+   end
+   ```
+
+3. **Cache Cleanup**: Add a background job to remove stale forecast records
+   ```ruby
+   # Example job that could run daily
+   class StaleDataCleanupJob < ApplicationJob
+     def perform
+       Forecast.where('queried_at < ?', 1.week.ago).delete_all
+     end
+   end
+   ```
+
+This tiered approach provides both the performance benefits of in-memory caching and the data persistence advantages of the current database implementation.
+
 ## Configuration
 
 The application is designed with enterprise-level configurability in mind. All critical parameters are externalized through environment variables:
@@ -140,6 +195,11 @@ The application is designed with enterprise-level configurability in mind. All c
 |---------------------|-------------|---------------|---------|
 | `OPENWEATHERMAP_API_KEY` | Your OpenWeatherMap API key | None (Required) | `a1b2c3d4e5f6g7h8i9j0...` |
 | `WEATHER_CACHE_DURATION_MINUTES` | Duration (in minutes) to cache weather forecasts | 30 | `60` |
+| `WEATHER_DEFAULT_UNIT` | Default temperature unit system | `imperial` (Fahrenheit) | `metric` (Celsius) |
+| `WEATHER_API_TIMEOUT_SECONDS` | API request timeout in seconds | 10 | `5` |
+| `WEATHER_MAX_REQUESTS_PER_MINUTE` | Maximum API requests per minute | 60 | `30` |
+| `WEATHER_FORECAST_DAYS` | Number of days in extended forecast | 5 | `7` |
+| `WEATHER_API_LOG_LEVEL` | Log level for API interactions | `info` | `debug` |
 
 ### Configuration Methods
 
