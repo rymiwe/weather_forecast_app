@@ -8,13 +8,14 @@ This application is available on GitHub: https://github.com/rymiwe/weather_forec
 
 ## Features
 
-- Accept an address as input
+- Accept an address as input (city name, ZIP code, or full street address)
 - Retrieve and display current temperature
 - Show high/low temperatures
 - Display extended 5-day forecast
-- Cache forecast data for 30 minutes by zip code
+- Configurable caching mechanism with default 30-minute duration
 - Show indicator when results are pulled from cache
 - Modern, responsive UI using Tailwind CSS
+- Enterprise-ready configuration through environment variables
 
 ## Technical Stack
 
@@ -52,7 +53,7 @@ This application is available on GitHub: https://github.com/rymiwe/weather_forec
    bin/rails db:create db:migrate
    ```
 
-4. Configure API key:
+4. Configure API key and application settings:
    - Copy the example configuration file: `cp config/env.yml.example config/env.yml`
    - Edit `config/env.yml` and replace `your_api_key_here` with your OpenWeatherMap API key
    - You can get a free API key by:
@@ -60,6 +61,7 @@ This application is available on GitHub: https://github.com/rymiwe/weather_forec
      2. After registering, go to your API keys section: https://home.openweathermap.org/api_keys
      3. Copy your API key (or create a new one)
    - Note: The application includes a mock weather service that works without an API key for development/testing
+   - Configure other environment variables as needed (see Configuration section below)
 
 5. Load sample data (optional):
    ```
@@ -130,19 +132,66 @@ The application implements a database-backed caching mechanism:
 4. If no cache exists, the system fetches fresh data from the OpenWeatherMap API
 5. All weather data is saved with a timestamp for cache expiration calculation
 
+## Configuration
+
+The application is designed with enterprise-level configurability in mind. All critical parameters are externalized through environment variables:
+
+| Environment Variable | Description | Default Value | Example |
+|---------------------|-------------|---------------|---------|
+| `OPENWEATHERMAP_API_KEY` | Your OpenWeatherMap API key | None (Required) | `a1b2c3d4e5f6g7h8i9j0...` |
+| `WEATHER_CACHE_DURATION_MINUTES` | Duration (in minutes) to cache weather forecasts | 30 | `60` |
+
+### Configuration Methods
+
+You can set these variables using any of these methods (in order of precedence):
+
+1. **Environment variables** directly in your deployment environment
+   ```
+   export OPENWEATHERMAP_API_KEY=your_api_key_here
+   export WEATHER_CACHE_DURATION_MINUTES=45
+   ```
+
+2. **config/env.yml file** (included in .gitignore to prevent sensitive data exposure)
+   ```yaml
+   OPENWEATHERMAP_API_KEY: 'your_api_key_here'
+   WEATHER_CACHE_DURATION_MINUTES: 45
+   ```
+
+3. **Rails credentials** (encrypted, suitable for production)
+   ```
+   rails credentials:edit
+   ```
+   Add to the credentials file:
+   ```yaml
+   openweathermap_api_key: your_api_key_here
+   weather:
+     cache_duration_minutes: 45
+   ```
+
+### Extending Configuration
+
+For adding new configurable parameters, follow this pattern in `config/application.rb`:
+
+```ruby
+# Application specific configuration
+config.x.weather = ActiveSupport::InheritableOptions.new
+config.x.weather.cache_duration = ENV.fetch('WEATHER_CACHE_DURATION_MINUTES', 30).to_i.minutes
+```
+
 ## Testing
 
 Run the test suite with:
 
 ```
-bin/rails test
+bundle exec rspec
 ```
 
-The application includes comprehensive tests covering:
-- Model validations and scopes
-- Controller actions and responses
+The application includes comprehensive RSpec tests covering:
+- Model validations, scopes and methods
+- Request specs for controller actions
 - Service layer functionality
-- Integration tests for the complete user flow
+- System tests for complete user flows
+- Test coverage for configurable parameters
 
 ## Scalability Considerations
 
@@ -195,5 +244,8 @@ This project was created as part of a coding challenge with the following requir
 - Current temperature and extended forecast display
 - 30-minute caching by zip code with indicators
 - Clean, maintainable code with proper documentation
+- Configurable caching mechanism with environment variable control
+- Clean, maintainable code with enterprise-level configuration
+- Thorough RSpec test coverage including cache testing
 
 The complete source code is available at: https://github.com/rymiwe/weather_forecast_app
