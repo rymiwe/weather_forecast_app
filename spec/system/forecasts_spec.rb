@@ -51,6 +51,35 @@ RSpec.describe "Weather Forecasts", type: :system do
       expect(page).to have_link("View Details")
     end
     
+    it "handles full street addresses" do
+      # Mock data for full address
+      full_address_data = {
+        address: "123 Main St, Portland, OR 97201",
+        zip_code: "97201",
+        current_temp: 59.0,
+        high_temp: 64.0,
+        low_temp: 52.0,
+        conditions: "cloudy",
+        extended_forecast: '[{"date":"2025-04-08","day_name":"Tuesday","high":64,"low":52,"conditions":["cloudy"]}]',
+        queried_at: Time.current
+      }
+      
+      # Stub the service to return our mock data for the full address
+      allow_any_instance_of(MockWeatherService).to receive(:get_by_address)
+        .with("123 Main St, Portland, OR 97201")
+        .and_return(full_address_data)
+      
+      # Visit the homepage and search
+      visit root_path
+      fill_in "address", with: "123 Main St, Portland, OR 97201"
+      click_button "Get Forecast"
+      
+      # Verify results are displayed
+      expect(page).to have_content("123 Main St, Portland, OR 97201")
+      expect(page).to have_content("59°F")
+      expect(page).to have_content("cloudy")
+    end
+    
     it "shows an error message for invalid location" do
       # Stub the service to return an error
       allow_any_instance_of(MockWeatherService).to receive(:get_by_address)
