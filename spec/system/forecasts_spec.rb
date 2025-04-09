@@ -146,7 +146,7 @@ RSpec.describe "Weather Forecasts", type: :system do
   end
   
   describe "End-to-end flow" do
-    it "allows searching and viewing details", js: true do
+    it "allows searching and viewing details for city name", js: true do
       # Mock data for New York
       ny_data = {
         address: "New York, NY 10001",
@@ -178,6 +178,49 @@ RSpec.describe "Weather Forecasts", type: :system do
       # Verify we're on the details page
       expect(page).to have_content("Detailed Forecast")
       expect(page).to have_content("New York, NY 10001")
+      
+      # Go back to search
+      click_link "Back to Search"
+      
+      # Verify we're back on the search page
+      expect(page).to have_current_path(forecasts_path)
+      expect(page).to have_field("address")
+    end
+    
+    it "allows searching and viewing details for full address", js: true do
+      # Mock data for a full address
+      address_data = {
+        address: "123 Broadway, Chicago, IL 60601",
+        zip_code: "60601",
+        current_temp: 45.0,
+        high_temp: 52.0,
+        low_temp: 38.0,
+        conditions: "windy",
+        extended_forecast: '[{"date":"2025-04-08","day_name":"Tuesday","high":52,"low":38,"conditions":["windy"]}]',
+        queried_at: Time.current
+      }
+      
+      # Create a stub that returns our mock data for full address
+      allow_any_instance_of(MockWeatherService).to receive(:get_by_address)
+        .with("123 Broadway, Chicago, IL 60601")
+        .and_return(address_data)
+      
+      # Start the flow
+      visit root_path
+      fill_in "address", with: "123 Broadway, Chicago, IL 60601"
+      click_button "Get Forecast"
+      
+      # Verify results are displayed
+      expect(page).to have_content("123 Broadway, Chicago, IL 60601")
+      expect(page).to have_content("45°F")
+      expect(page).to have_content("windy")
+      
+      # Click through to details
+      click_link "View Details"
+      
+      # Verify we're on the details page with full address
+      expect(page).to have_content("Detailed Forecast")
+      expect(page).to have_content("123 Broadway, Chicago, IL 60601")
       
       # Go back to search
       click_link "Back to Search"

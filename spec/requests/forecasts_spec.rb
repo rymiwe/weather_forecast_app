@@ -46,6 +46,34 @@ RSpec.describe "Forecasts", type: :request do
       expect(response.body).to include("rain") 
     end
     
+    it "handles full street addresses" do
+      # Arrange: Create mock data and stub service for full address
+      mock_data = {
+        address: "123 Pine St, San Francisco, CA 94111",
+        zip_code: "94111",
+        current_temp: 64.0,
+        high_temp: 70.0,
+        low_temp: 58.0,
+        conditions: "sunny",
+        extended_forecast: '[{"date":"2025-04-08","day_name":"Tuesday","high":70,"low":58,"conditions":["sunny"]}]',
+        queried_at: Time.current
+      }
+      
+      # Using RSpec's built-in mocking
+      allow_any_instance_of(MockWeatherService).to receive(:get_by_address)
+        .with("123 Pine St, San Francisco, CA 94111")
+        .and_return(mock_data)
+      
+      # Act: Perform the request
+      get forecasts_path, params: { address: "123 Pine St, San Francisco, CA 94111" }
+      
+      # Assert: Verify response
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("123 Pine St, San Francisco, CA 94111")
+      expect(response.body).to include("64°F")
+      expect(response.body).to include("sunny")
+    end
+    
     it "uses cached forecast when forecast exists for zip code" do
       # Arrange: Create a cached forecast
       cached = create(:forecast, :chicago, queried_at: 15.minutes.ago)
