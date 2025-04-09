@@ -13,6 +13,23 @@ FactoryBot.define do
       queried_at { 2.hours.ago }
     end
     
+    trait :fresh do
+      queried_at { 30.seconds.ago }
+    end
+    
+    trait :cached do
+      queried_at { 15.minutes.ago }
+    end
+    
+    trait :seattle do
+      address { "Seattle, WA 98101" }
+      zip_code { "98101" }
+      current_temp { 52.5 }
+      high_temp { 58.0 }
+      low_temp { 48.0 }
+      conditions { "partly cloudy" }
+    end
+    
     trait :chicago do
       address { "Chicago, IL 60601" }
       zip_code { "60601" }

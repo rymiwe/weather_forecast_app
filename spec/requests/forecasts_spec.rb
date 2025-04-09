@@ -99,6 +99,22 @@ RSpec.describe "Forecasts", type: :request do
       expect(response).to have_http_status(:success)
       expect(response.body).to include("Chicago, IL 60601")
       expect(response.body).to include("Cached Result")
+      
+      # Verify cached result doesn't make new API calls
+      expect_any_instance_of(MockWeatherService).not_to receive(:get_by_address)
+    end
+    
+    it "shows different UI indicators for fresh vs cached data" do
+      # Arrange: Create a very recent forecast (acts as "fresh" data)
+      fresh = create(:forecast, :seattle, queried_at: 30.seconds.ago)
+      
+      # Act: Search using the recent forecast's zip code
+      get forecasts_path, params: { address: fresh.zip_code }
+      
+      # Assert: Verify we get the fresh result without "Cached Result" indicator
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(fresh.address)
+      expect(response.body).not_to include("Cached Result")
     end
     
     it "doesn't return results for empty address" do
@@ -162,8 +178,30 @@ RSpec.describe "Forecasts", type: :request do
         end
       end
       
+      # Verify technical cache information is displayed
+      expect(response.body).to include("CACHE STATUS")
+      expect(response.body).to include("CACHE EXPIRES")
+      
       expect(response.body).to include("Back to Search")
       expect(response.body).to include("Technical Information")
+    end
+    
+    it "displays different cache status for fresh vs cached forecasts" do
+      # Arrange: Create forecasts with different cache statuses
+      cached_forecast = create(:forecast, :chicago, queried_at: 15.minutes.ago)
+      fresh_forecast = create(:forecast, :seattle, queried_at: 30.seconds.ago)
+      
+      # Act & Assert: Check cached forecast shows correct status
+      get forecast_path(cached_forecast)
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Cached Result")
+      expect(response.body).to include("CACHE STATUS")
+      
+      # Act & Assert: Check fresh forecast shows correct status
+      get forecast_path(fresh_forecast)
+      expect(response).to have_http_status(:success)
+      expect(response.body).not_to include("Cached Result")
+      expect(response.body).to include("Fresh Data")
     end
     
     it "redirects to index for invalid id" do
