@@ -32,9 +32,14 @@
           <div class="flex justify-between items-start">
             <div>
               <h2 class="text-2xl font-bold"><%= @forecast.address %></h2>
-              <p class="text-gray-500">
-                <%= @forecast.queried_at.strftime("%A, %B %d, %Y at %I:%M %p") %>
-              </p>
+              <div class="text-center">
+                <% 
+                  # Format the time nicely in local timezone 
+                  local_time = @forecast.queried_at.in_time_zone(@forecast.location_timezone)
+                  formatted_time = local_time.strftime("%A, %B %-d, %Y at %I:%M %p")
+                %>
+                <p class="text-gray-500 text-sm"><%= formatted_time %> (<%= @forecast.location_timezone.gsub('_', ' ') %>)</p>
+              </div>
             </div>
             <% if @forecast.cached? %>
               <div class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
@@ -45,24 +50,37 @@
         </div>
         
         <!-- Current conditions -->
-        <div class="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-          <div class="flex justify-between items-center">
-            <div>
-              <p class="text-xl opacity-90"><%= @forecast.conditions.titleize %></p>
-              <h3 class="text-5xl font-bold mt-1"><%= display_temperature(@forecast.current_temp, session[:temperature_units], size: '5xl') %></h3>
+        <% 
+          # Handle the current condition properly
+          condition = @forecast.conditions.is_a?(Array) ? @forecast.conditions.first : @forecast.conditions
+          condition_style = temperature_background_class(@forecast.current_temp, session[:temperature_units], condition)
+        %>
+        <div class="p-6 <%= condition_style %> text-white">
+          <% if Rails.env.development? %>
+            <p class="text-xs text-white">Debug: condition="<%= condition %>", background="<%= condition_style %>"</p>
+          <% end %>
+          
+          <div class="flex flex-col items-center">
+            <!-- Current weather with icon -->
+            <div class="my-4 text-center">
+              <%= render partial: 'shared/weather_icon', locals: { icon_name: weather_icon_name(condition), css_classes: 'h-20 w-20 text-white mx-auto' } %>
+              <p class="text-xl font-medium mt-2"><%= condition %></p>
+              <h3 class="text-5xl font-bold mt-2"><%= display_temperature(@forecast.current_temp, session[:temperature_units], size: '2xl') %></h3>
             </div>
-            <div class="text-right">
-              <div class="flex items-center justify-end gap-1">
+            
+            <!-- High/Low temperatures -->
+            <div class="flex justify-center gap-8 w-full">
+              <div class="flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-xl"><%= display_temperature(@forecast.high_temp, session[:temperature_units]) %></span>
+                <span class="text-xl">High: <%= display_temperature(@forecast.high_temp, session[:temperature_units]) %></span>
               </div>
-              <div class="flex items-center justify-end gap-1 mt-1">
+              <div class="flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-xl"><%= display_temperature(@forecast.low_temp, session[:temperature_units]) %></span>
+                <span class="text-xl">Low: <%= display_temperature(@forecast.low_temp, session[:temperature_units]) %></span>
               </div>
             </div>
           </div>
@@ -74,23 +92,48 @@
             <h4 class="text-lg font-semibold mb-4">Extended Forecast</h4>
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
               <% @forecast.extended_forecast_data.each do |day| %>
-                <div class="p-4 bg-gray-50 rounded-md text-center">
-                  <p class="font-medium"><%= day['day_name'] %></p>
-                  <p class="text-sm text-gray-500"><%= day['date'] %></p>
-                  <div class="my-2">
-                    <span class="font-medium text-red-600"><%= display_temperature(day['high'], session[:temperature_units]) %></span> / 
-                    <span class="font-medium text-blue-600"><%= display_temperature(day['low'], session[:temperature_units]) %></span>
-                  </div>
-                  <p class="text-sm text-gray-700"><%= day['conditions'].first %></p>
-                </div>
+                <%= render 'shared/forecast_day_card', day: day, temperature_units: session[:temperature_units] %>
               <% end %>
             </div>
           </div>
         <% end %>
         
-        <!-- View details link -->
-        <div class="p-4 bg-gray-50 border-t text-center">
-          <%= link_to "View Details", forecast_path(@forecast), class: "text-blue-600 hover:text-blue-800", data: { turbo_frame: "_top" } if @forecast&.persisted? %>
+        <!-- Technical info (in a subtle, collapsible way) -->
+        <div class="p-4 bg-gray-50 border-t">
+          <details class="text-sm">
+            <summary class="cursor-pointer text-gray-600 text-sm flex items-center">
+              <span class="transform transition-transform duration-200 inline-block mr-1">&#9660;</span> 
+              Technical Information
+            </summary>
+            <div class="pt-3 pl-4">
+              <p class="text-sm text-gray-600"><strong>FORECAST ID</strong><br>
+                <%= @forecast.id %>
+              </p>
+              
+              <p class="text-sm text-gray-600 mt-3"><strong>QUERIED AT</strong><br>
+                <%= @forecast.queried_at.strftime("%Y-%m-%d %H:%M:%S %Z") %>
+              </p>
+              
+              <p class="text-sm text-gray-600 mt-3"><strong>CACHE STATUS</strong><br>
+                <%= @forecast.cached? ? "From Cache" : "Fresh Data" %>
+              </p>
+              
+              <p class="text-sm text-gray-600 mt-3"><strong>CACHE EXPIRES</strong><br>
+                <% 
+                  expires_at = @forecast.queried_at + Rails.configuration.x.weather.cache_duration 
+                  expires_at_local = expires_at.in_time_zone(@forecast.location_timezone)
+                  local_now = Time.now.in_time_zone(@forecast.location_timezone)
+                  minutes_left = ((expires_at - Time.now) / 60).round
+                %>
+                <%= expires_at_local.strftime("%I:%M %p") %> (<%= @forecast.location_timezone.gsub('_', ' ') %>)
+                <% if minutes_left > 0 %>
+                  <span class="text-xs text-green-600"><%= minutes_left %> minutes left</span>
+                <% else %>
+                  <span class="text-xs text-red-600">Expired</span>
+                <% end %>
+              </p>
+            </div>
+          </details>
         </div>
       </div>
     <% end %>

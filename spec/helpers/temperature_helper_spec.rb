@@ -157,4 +157,86 @@ RSpec.describe TemperatureHelper, type: :helper do
       end
     end
   end
+  
+  describe "#temperature_background_class" do
+    context "condition-based backgrounds" do
+      it "returns blue gradient for rainy conditions" do
+        expect(helper.temperature_background_class(20, 'metric', 'rain')).to eq('bg-gradient-to-r from-blue-600 to-blue-700')
+        expect(helper.temperature_background_class(20, 'metric', 'light rain')).to eq('bg-gradient-to-r from-blue-600 to-blue-700')
+        expect(helper.temperature_background_class(20, 'metric', 'showers')).to eq('bg-gradient-to-r from-blue-600 to-blue-700')
+      end
+      
+      it "returns light blue gradient for snowy conditions" do
+        expect(helper.temperature_background_class(20, 'metric', 'snow')).to eq('bg-gradient-to-r from-blue-300 to-blue-400')
+        expect(helper.temperature_background_class(20, 'metric', 'sleet')).to eq('bg-gradient-to-r from-blue-300 to-blue-400')
+      end
+      
+      it "returns gray gradient for cloudy conditions" do
+        expect(helper.temperature_background_class(20, 'metric', 'cloudy')).to eq('bg-gradient-to-r from-gray-500 to-blue-500')
+        expect(helper.temperature_background_class(20, 'metric', 'clouds')).to eq('bg-gradient-to-r from-gray-500 to-blue-500')
+      end
+      
+      it "returns dark gradient for stormy conditions" do
+        expect(helper.temperature_background_class(20, 'metric', 'thunderstorm')).to eq('bg-gradient-to-r from-slate-700 to-slate-800')
+        expect(helper.temperature_background_class(20, 'metric', 'storm')).to eq('bg-gradient-to-r from-slate-700 to-slate-800')
+      end
+      
+      it "returns gray gradient for foggy conditions" do
+        expect(helper.temperature_background_class(20, 'metric', 'fog')).to eq('bg-gradient-to-r from-gray-400 to-gray-500')
+        expect(helper.temperature_background_class(20, 'metric', 'mist')).to eq('bg-gradient-to-r from-gray-400 to-gray-500')
+      end
+    end
+    
+    context "temperature-based backgrounds for metric units" do
+      it "returns blue gradient for freezing temperatures" do
+        expect(helper.temperature_background_class(0, 'metric')).to eq('bg-gradient-to-r from-blue-500 to-indigo-600')
+        expect(helper.temperature_background_class(-10, 'metric')).to eq('bg-gradient-to-r from-blue-500 to-indigo-600')
+      end
+      
+      it "returns blue gradient for cold temperatures" do
+        expect(helper.temperature_background_class(5, 'metric')).to eq('bg-gradient-to-r from-blue-400 to-blue-500')
+      end
+      
+      it "returns green gradient for mild temperatures" do
+        expect(helper.temperature_background_class(15, 'metric')).to eq('bg-gradient-to-r from-green-500 to-teal-600')
+      end
+      
+      it "returns yellow gradient for warm temperatures" do
+        expect(helper.temperature_background_class(25, 'metric')).to eq('bg-gradient-to-r from-yellow-500 to-amber-600')
+      end
+      
+      it "returns orange gradient for hot temperatures" do
+        expect(helper.temperature_background_class(35, 'metric')).to eq('bg-gradient-to-r from-orange-500 to-red-600')
+      end
+    end
+    
+    context "temperature-based backgrounds for imperial units" do
+      it "returns blue gradient for freezing temperatures" do
+        expect(helper.temperature_background_class(31, 'imperial')).to eq('bg-gradient-to-r from-blue-500 to-indigo-600')
+      end
+      
+      it "returns blue gradient for cold temperatures" do
+        expect(helper.temperature_background_class(40, 'imperial')).to eq('bg-gradient-to-r from-blue-400 to-blue-500')
+      end
+      
+      it "returns green gradient for mild temperatures" do
+        expect(helper.temperature_background_class(60, 'imperial')).to eq('bg-gradient-to-r from-green-500 to-teal-600')
+      end
+      
+      it "returns yellow gradient for warm temperatures" do
+        expect(helper.temperature_background_class(75, 'imperial')).to eq('bg-gradient-to-r from-yellow-500 to-amber-600')
+      end
+      
+      it "returns orange gradient for hot temperatures" do
+        expect(helper.temperature_background_class(90, 'imperial')).to eq('bg-gradient-to-r from-orange-500 to-red-600')
+      end
+    end
+    
+    context "priority of condition vs temperature" do
+      it "prioritizes condition over temperature" do
+        # Even though 0°C would normally be blue gradient, rainy condition takes precedence
+        expect(helper.temperature_background_class(0, 'metric', 'rain')).to eq('bg-gradient-to-r from-blue-600 to-blue-700')
+      end
+    end
+  end
 end

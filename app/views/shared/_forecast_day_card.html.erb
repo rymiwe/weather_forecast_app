@@ -1,0 +1,33 @@
+<%# 
+  Renders a single day in the extended forecast
+  
+  Parameters:
+  - day: A hash containing day forecast data
+    - day_name: Name of the day (e.g., 'Monday')
+    - date: Date string
+    - conditions: Array of weather conditions
+    - high: High temperature value
+    - low: Low temperature value
+  - temperature_units: User's preferred temperature units ('metric' or 'imperial')
+%>
+
+<% 
+  condition = day['conditions'].is_a?(Array) ? day['conditions'].first : day['conditions']
+  bg_class = forecast_card_background_class(condition, day['high'], temperature_units)
+%>
+
+<div class="p-4 <%= bg_class %> rounded-md text-center shadow-sm hover:shadow-md transition-shadow">
+  <p class="font-medium"><%= day['day_name'] %></p>
+  <p class="text-sm text-gray-500"><%= day['date'] %></p>
+  <div class="my-2 flex justify-center">
+    <%= render 'shared/weather_icon', icon_name: weather_icon_name(condition), css_classes: 'h-8 w-8 text-gray-600 mb-1' %>
+  </div>
+  <div class="my-2">
+    <span class="font-medium text-red-600"><%= display_temperature(day['high'], temperature_units) %></span> / 
+    <span class="font-medium text-blue-600"><%= display_temperature(day['low'], temperature_units) %></span>
+  </div>
+  <p class="text-sm text-gray-700"><%= day['conditions'].join(', ') if day['conditions'].is_a?(Array) %></p>
+  <% if Rails.env.development? && false %>
+    <p class="text-xs text-gray-500 mt-1">Condition: "<%= condition %>"</p>
+  <% end %>
+</div>

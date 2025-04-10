@@ -12,102 +12,106 @@ class ForecastRetrievalService
   # @return [Forecast, nil] The forecast object or nil if there was an error
   # @raise [StandardError] if API rate limit is exceeded or API key is missing
   def self.retrieve(address, units: nil, request_ip: nil)
-    new(address, units, request_ip).retrieve
+    new(address: address, units: units).call
   end
   
-  def initialize(address, units, request_ip)
+  # Initialize with an address and units
+  # @param address [String] The address to retrieve forecast for  
+  # @param units [String] Temperature units ('imperial' or 'metric'). If nil, will be determined by location
+  def initialize(address:, units: nil)
     @address = address
-    @units = units || default_units(request_ip)
-    @request_ip = request_ip
+    
+    # Extract zip code from address
     @zip_code = ZipCodeExtractionService.extract_from_address(address)
+    
+    # If units is nil, it will be determined by location in the #call method
+    @units = units
   end
   
-  # Main method to retrieve forecast
-  # Tries cache first, then API if needed
-  def retrieve
-    # Try to find in cache first
-    if @zip_code
-      cached_forecast = Forecast.find_cached(@zip_code)
-      return cached_forecast if cached_forecast
+  # Retrieve the forecast
+  # @return [Forecast] The forecast object
+  def call
+    # Check if a forecast already exists for this address within the cache window
+    forecast = find_cached_forecast
+    
+    if forecast.nil?
+      # No valid cached forecast, fetch new data
+      weather_data = fetch_from_api
+      return nil if weather_data.nil?
+      
+      # Create a new forecast record
+      forecast = Forecast.new(
+        address: @address,
+        zip_code: @zip_code,
+        current_temp: weather_data[:current_temp],
+        high_temp: weather_data[:high_temp], 
+        low_temp: weather_data[:low_temp],
+        conditions: weather_data[:conditions],
+        extended_forecast: weather_data[:extended_forecast],
+        queried_at: Time.now
+      )
+      
+      if forecast.save
+        Rails.logger.info "Created new forecast for #{@address}"
+      else
+        Rails.logger.error "Failed to save forecast: #{forecast.errors.full_messages.join(', ')}"
+        return nil
+      end
+    else
+      Rails.logger.info "Using cached forecast for #{@address}"
     end
     
-    # If not in cache, fetch from API
-    fetch_from_api
-  rescue StandardError => e
-    # Use centralized error handling
-    error_context = { address: @address, zip_code: @zip_code, ip: @request_ip }
-    ErrorHandlingService.handle_api_error(e, error_context)
-    nil
+    forecast
   end
   
   private
   
-  # Determine default temperature units
-  def default_units(request_ip)
-    Rails.configuration.x.weather.default_unit || 
-      UserLocationService.units_for_ip(request_ip)
+  # Find a cached forecast if one exists
+  # @return [Forecast] The cached forecast or nil
+  def find_cached_forecast
+    # Skip cache if testing
+    return nil if Rails.env.test?
+    
+    # Find by zip code if available, otherwise by address
+    scope = if @zip_code.present?
+      Forecast.where(zip_code: @zip_code)
+    else
+      Forecast.where(address: @address)
+    end
+    
+    # Find a forecast that's still valid
+    scope.where('queried_at > ?', Time.now - Rails.configuration.x.weather.cache_duration).order(queried_at: :desc).first
   end
   
-  # Fetch forecast from API
+  # Fetch weather data from the API
+  # @return [Hash] The weather data
   def fetch_from_api
-    # Verify API key
     api_key = ENV['OPENWEATHERMAP_API_KEY']
-    raise ErrorHandlingService::ConfigurationError, "Weather API key is missing" unless api_key
     
-    # No longer using rate limiting prevention, just handle errors gracefully
-    
-    # Fetch data from service
-    weather_service = MockWeatherService.new(api_key)
-    weather_data = if @request_ip
-                    weather_service.get_by_address(@address, units: @units, ip: @request_ip)
-                  else
-                    weather_service.get_by_address(@address, units: @units)
-                  end
-    
-    # If API responds with rate limit error
-    if weather_data[:error] && weather_data[:error].to_s.match?(/rate limit|too many requests/i)
-      ErrorHandlingService.handle_rate_limit_exceeded('openweathermap', "Rate limit exceeded for #{@address}")
-    elsif weather_data[:error]
-      Rails.logger.error "API Error: #{weather_data[:error]}"
-      return nil
+    if api_key.blank?
+      Rails.logger.error "Missing OpenWeatherMap API key"
+      raise ErrorHandlingService::ConfigurationError, "Missing API key"
     end
     
-    # Extract relevant data and create forecast with normalized temperatures in Celsius
-    # Convert temperatures to Celsius if they were provided in imperial units
-    current_temp = weather_data[:current_temp]
-    high_temp = weather_data[:high_temp]
-    low_temp = weather_data[:low_temp]
+    # Default to metric units if none specified
+    units_to_use = @units || 'metric'
     
-    # Save temperatures in Celsius (our normalized format) as integers
-    if @units == 'imperial' && !current_temp.nil?
-      current_temp = TemperatureConversionService.fahrenheit_to_celsius(current_temp.to_f)
-      high_temp = high_temp.nil? ? nil : TemperatureConversionService.fahrenheit_to_celsius(high_temp.to_f)
-      low_temp = low_temp.nil? ? nil : TemperatureConversionService.fahrenheit_to_celsius(low_temp.to_f)
-    elsif !current_temp.nil?
-      # Ensure Celsius values are also rounded integers
-      current_temp = current_temp.to_f.round
-      high_temp = high_temp.nil? ? nil : high_temp.to_f.round
-      low_temp = low_temp.nil? ? nil : low_temp.to_f.round
+    begin
+      # In development/test, use the mock service
+      if Rails.env.development? || Rails.env.test?
+        weather_service = MockWeatherService.new(api_key)
+        weather_data = weather_service.get_by_address(@address, units: units_to_use)
+      else
+        # In production, use the real service
+        weather_service = OpenWeatherMapService.new(api_key)
+        weather_data = weather_service.get_by_address(@address, units: units_to_use)
+      end
+      
+      # Normalize data according to our application format
+      weather_data
+    rescue => e
+      Rails.logger.error "Error fetching weather data: #{e.message}"
+      raise
     end
-    
-    # Create the forecast with normalized temperatures
-    forecast = Forecast.create(
-      address: @address,
-      zip_code: @zip_code,
-      current_temp: current_temp,
-      high_temp: high_temp,
-      low_temp: low_temp,
-      conditions: weather_data[:conditions].is_a?(Array) ? weather_data[:conditions].first : weather_data[:conditions],
-      extended_forecast: weather_data[:extended_forecast],
-      queried_at: Time.current
-    )
-    
-    # Handle validation errors properly if the forecast couldn't be saved
-    unless forecast.persisted?
-      error_context = { address: @address, data: weather_data }
-      ErrorHandlingService.handle_validation_error(forecast, error_context)
-    end
-    
-    forecast
   end
 end

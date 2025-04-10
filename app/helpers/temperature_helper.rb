@@ -3,61 +3,101 @@
 # Helper for displaying temperature values consistently throughout the application
 # Follows DRY principles by centralizing temperature formatting logic
 module TemperatureHelper
-  # Format a temperature for display with proper units
-  # @param temperature [Integer] The temperature value in Celsius
-  # @param user_preference [String] The user's unit preference ('metric' or 'imperial')
-  # @param options [Hash] Additional options for formatting
-  # @option options [Integer] :precision Number of decimal places (default: 0)
-  # @option options [Boolean] :show_unit Whether to show the unit symbol (default: true)
-  # @option options [String] :size CSS size class ('sm', 'md', 'lg' - default: nil)
-  # @option options [Boolean] :colorize Whether to apply temperature-based colors (default: true)
-  # @return [String] Formatted temperature string
-  def display_temperature(temperature, user_preference = session[:temperature_units], options = {})
-    return "N/A" unless temperature.present?
+  # Format a temperature for display
+  # @param temp [Integer] Temperature value to display
+  # @param units [String] Temperature units ('metric' for Celsius, 'imperial' for Fahrenheit)
+  # @param options [Hash] Additional options
+  # @option options [String] :size Size of the temperature text ('sm', 'md', 'lg', 'xl', '2xl')
+  # @option options [Boolean] :colorize Whether to colorize the temperature based on value
+  # @return [String] HTML for displaying the temperature
+  def display_temperature(temp, units, options = {})
+    return "N/A" if temp.nil?
     
-    # Handle nil options
-    options ||= {}
+    # Determine units from session if not specified
+    units ||= session[:temperature_units] || Rails.configuration.x.weather.default_unit
     
-    precision = options.fetch(:precision, 0)
-    show_unit = options.fetch(:show_unit, true)
-    size_class = size_class_for(options.fetch(:size, nil))
-    colorize = options.fetch(:colorize, true)
-    
-    # Ensure we have a numeric value - but we now expect integer in the database
-    temperature = temperature.to_i
-    
-    # Use user_preference if provided, otherwise fall back to session
-    actual_preference = user_preference.presence || session[:temperature_units]
-    
-    # Convert if user prefers imperial (our database stores everything in Celsius as integers)
-    displayed_temp = if actual_preference.to_s == 'imperial'
-                       TemperatureConversionService.celsius_to_fahrenheit(temperature)
-                     else
-                       temperature
-                     end
-    
-    unit_symbol = if show_unit
-                    actual_preference.to_s == 'imperial' ? '°F' : '°C'
-                  else
-                    ''
-                  end
-    
-    # No need for rounding decimals anymore since we're using integers
-    temp_value = displayed_temp
-    
-    # Determine temperature color class based on value and units
-    color_class = colorize ? temperature_color_class(displayed_temp, actual_preference.to_s) : nil
-    
-    # Combine classes if both size and color are specified
-    css_classes = [size_class, color_class].reject(&:blank?).join(' ')
-    
-    # Add CSS class for styling if any classes are specified
-    if css_classes.present?
-      content_tag(:span, class: css_classes) do
-        "#{temp_value}#{unit_symbol}".html_safe
-      end
+    # Calculate the temperature value in the requested units
+    value = if units.to_s.downcase == 'imperial'
+      # Convert from Celsius to Fahrenheit
+      (temp.to_f * 9/5 + 32).round
     else
-      "#{temp_value}#{unit_symbol}".html_safe
+      # Keep as Celsius
+      temp.to_i
+    end
+    
+    # Default options
+    options = { size: nil, colorize: true }.merge(options || {})
+    
+    # Apply size class if specified
+    css_classes = []
+    if options[:size]
+      css_classes << size_class_for(options[:size])
+    end
+    
+    # Apply color based on temperature unless colorize is false
+    if options[:colorize]
+      css_classes << temperature_color_class(value, units)
+    end
+    
+    # Format with the degree symbol and unit
+    css_class = css_classes.join(' ')
+    unit_symbol = units.to_s.downcase == 'imperial' ? 'F' : 'C'
+    
+    if css_class.present?
+      "<span class=\"#{css_class}\">#{value}&#176;#{unit_symbol}</span>".html_safe
+    else
+      "#{value}&#176;#{unit_symbol}".html_safe
+    end
+  end
+  
+  # Return appropriate background gradient class based on temperature and conditions
+  # @param temp [Integer] Temperature value
+  # @param units [String] Temperature units ('metric' or 'imperial')
+  # @param conditions [String] Weather conditions (e.g., 'rain', 'snow')
+  # @return [String] CSS class for background gradient
+  def temperature_background_class(temp, units, conditions = nil)
+    # Default to weather condition-based backgrounds first
+    if conditions.present?
+      conditions = conditions.to_s.downcase
+      
+      if conditions.include?('rain') || conditions.include?('shower') || conditions.include?('drizzle')
+        return 'bg-gradient-to-r from-blue-600 to-blue-700'
+      elsif conditions.include?('snow') || conditions.include?('sleet') || conditions.include?('winter')
+        return 'bg-gradient-to-r from-blue-300 to-blue-400'
+      elsif conditions.include?('storm') || conditions.include?('thunder')
+        return 'bg-gradient-to-r from-slate-700 to-slate-800'
+      elsif conditions.include?('fog') || conditions.include?('mist') || conditions.include?('haze')
+        return 'bg-gradient-to-r from-gray-400 to-gray-500'
+      elsif conditions.include?('cloud')
+        return 'bg-gradient-to-r from-gray-500 to-blue-500'
+      end
+    end
+    
+    # If no condition match or no conditions provided, use temperature-based gradient
+    if units == 'imperial'
+      if temp < 32  # Freezing in Fahrenheit
+        'bg-gradient-to-r from-blue-500 to-indigo-600'
+      elsif temp < 50  # Cold in Fahrenheit
+        'bg-gradient-to-r from-blue-400 to-blue-500'
+      elsif temp < 68  # Mild in Fahrenheit
+        'bg-gradient-to-r from-green-500 to-teal-600'
+      elsif temp < 86  # Warm in Fahrenheit
+        'bg-gradient-to-r from-yellow-500 to-amber-600'
+      else  # Hot in Fahrenheit
+        'bg-gradient-to-r from-orange-500 to-red-600'
+      end
+    else # Celsius
+      if temp <= 0  # Freezing in Celsius
+        'bg-gradient-to-r from-blue-500 to-indigo-600'
+      elsif temp < 10  # Cold in Celsius
+        'bg-gradient-to-r from-blue-400 to-blue-500'
+      elsif temp < 20  # Mild in Celsius
+        'bg-gradient-to-r from-green-500 to-teal-600'
+      elsif temp < 30  # Warm in Celsius
+        'bg-gradient-to-r from-yellow-500 to-amber-600'
+      else  # Hot in Celsius
+        'bg-gradient-to-r from-orange-500 to-red-600'
+      end
     end
   end
   
