@@ -6,8 +6,12 @@ class ErrorHandlingService
   # Custom error classes for domain-specific errors
   class ApiError < StandardError; end
   class RateLimitError < StandardError; end
+  class RateLimitExceededError < StandardError; end
   class ConfigurationError < StandardError; end
   class ValidationError < StandardError; end
+  
+  # Default error message for rate limiting
+  DEFAULT_RATE_LIMIT_MESSAGE = "API rate limit exceeded. Please try again later."
   
   # Handle errors for API services
   # @param error [Exception] The caught exception
@@ -17,6 +21,8 @@ class ErrorHandlingService
     log_error(error, context)
     
     case error
+    when RateLimitExceededError
+      { error: error.message, status: :too_many_requests }
     when RateLimitError
       { error: 'Rate limit exceeded. Please try again later.', status: :too_many_requests }
     when ConfigurationError
@@ -25,7 +31,7 @@ class ErrorHandlingService
       { error: 'API service error. Please try again later.', status: :bad_gateway }
     when JSON::ParserError
       { error: 'Invalid response format from external service.', status: :unprocessable_entity }
-    when Net::HTTPError, Timeout::Error, Errno::ECONNREFUSED
+    when Net::HTTPClientException, Net::HTTPServerException, Net::HTTPFatalError, Timeout::Error, Errno::ECONNREFUSED
       { error: 'Unable to connect to external service.', status: :service_unavailable }
     else
       { error: 'An unexpected error occurred.', status: :internal_server_error }
@@ -43,6 +49,22 @@ class ErrorHandlingService
     log_validation_error(record, context)
     
     { error: error_messages, status: :unprocessable_entity }
+  end
+  
+  # Handle rate limit exceeded situations
+  # 
+  # @param service_name [String] name of the service that hit the rate limit
+  # @param custom_message [String] optional custom message
+  # @return [void]
+  # @raise [RateLimitExceededError] always raises this error with appropriate message
+  def self.handle_rate_limit_exceeded(service_name, custom_message = nil)
+    message = custom_message || DEFAULT_RATE_LIMIT_MESSAGE
+    
+    # Log the event for monitoring and metrics
+    Rails.logger.warn("Rate limit exceeded for #{service_name}: #{message}")
+    
+    # Raise a standardized error that can be caught and handled in controllers
+    raise RateLimitExceededError, message
   end
   
   # Log a detailed error with context

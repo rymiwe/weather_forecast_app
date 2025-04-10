@@ -54,10 +54,7 @@ class ForecastRetrievalService
     api_key = ENV['OPENWEATHERMAP_API_KEY']
     raise ErrorHandlingService::ConfigurationError, "Weather API key is missing" unless api_key
     
-    # Check rate limits
-    unless ApiRateLimiter.allow_request?('openweathermap')
-      raise ErrorHandlingService::RateLimitError, "API rate limit exceeded for request: #{@address}"
-    end
+    # No longer using rate limiting prevention, just handle errors gracefully
     
     # Fetch data from service
     weather_service = MockWeatherService.new(api_key)
@@ -67,7 +64,10 @@ class ForecastRetrievalService
                     weather_service.get_by_address(@address, units: @units)
                   end
     
-    if weather_data[:error]
+    # If API responds with rate limit error
+    if weather_data[:error] && weather_data[:error].to_s.match?(/rate limit|too many requests/i)
+      ErrorHandlingService.handle_rate_limit_exceeded('openweathermap', "Rate limit exceeded for #{@address}")
+    elsif weather_data[:error]
       Rails.logger.error "API Error: #{weather_data[:error]}"
       return nil
     end

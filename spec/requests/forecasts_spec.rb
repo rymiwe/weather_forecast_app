@@ -147,9 +147,10 @@ RSpec.describe "Forecasts", type: :request do
       # Act: Search with empty address
       get forecasts_path, params: { address: "" }
       
-      # Assert: No forecast results shown
-      expect(response).to have_http_status(:success)
+      # Assert: No forecast results shown but error message is displayed
+      expect(response).to have_http_status(:unprocessable_entity)
       expect(response.body).not_to include("Current Temperature")
+      expect(response.body).to include("Please provide an address")
     end
     
     it "shows error for invalid address" do

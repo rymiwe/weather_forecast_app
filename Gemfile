@@ -32,9 +32,6 @@ gem "jbuilder"
 # IP-based geolocation for regional unit selection
 gem "geocoder"
 
-# Use Redis adapter to run Action Cable in production
-# gem "redis", ">= 4.0.1"
-
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
 
@@ -58,6 +55,8 @@ group :development, :test do
   gem "rspec-rails"
   gem "factory_bot_rails"
   gem "rails-controller-testing" # For asserting template and request assignments
+  gem 'simplecov', require: false
+  gem 'terminal-table', require: false
 end
 
 group :test do

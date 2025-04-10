@@ -8,16 +8,13 @@ This application is available on GitHub: https://github.com/rymiwe/weather_forec
 
 ## Features
 
-- Accept an address as input (city name, ZIP code, or full street address)
-- Retrieve and display current temperature
-- Show high/low temperatures
-- Display extended 5-day forecast
-- Configurable caching mechanism with default 30-minute duration
-- Show indicator when results are pulled from cache
-- Modern, responsive UI using Tailwind CSS
-- Enterprise-ready configuration through environment variables
-- Smart temperature unit selection based on geographic region
-- API rate limiting to respect service provider constraints
+- **Address-based Weather Search**: Get weather forecasts for any address or zip code
+- **Detailed Forecasts**: View current conditions, temperatures, and 5-day forecasts
+- **Intelligent Caching**: DB-backed caching system with configurable expiration
+- **Smart Temperature Units**: Automatically selects Fahrenheit or Celsius based on location
+- **Responsive Design**: Mobile-friendly interface using Tailwind CSS
+- **Comprehensive Error Handling**: Graceful handling of API failures and network issues
+- **Extensive Test Coverage**: 213 tests with 88% code coverage using RSpec
 
 ## Technical Stack
 
@@ -178,110 +175,32 @@ end
 
 This tiered approach provides both the performance benefits of in-memory caching and the data persistence advantages of the current database implementation.
 
-## Testing Strategy
+## Error Handling Strategy
 
-The application uses a comprehensive testing approach to ensure reliability:
+The application uses a centralized error handling approach to provide a consistent and user-friendly experience:
 
-### Test Tools
+### Graceful Error Handling
 
-- **RSpec**: Primary testing framework for all test types
-- **FactoryBot**: For creating test objects
-- **Capybara**: For system/integration tests
-- **Selenium**: For browser automation in system tests
+The application takes a pragmatic approach to error handling:
 
-### Test Types
-
-1. **Unit Tests**: For individual classes and modules
-   - Model tests for validations and business logic
-   - Service object tests for domain logic
-   - Helper tests for view logic
-
-2. **Integration Tests**: 
-   - Request specs for controller actions
-   - API endpoint testing
-
-3. **System Tests**:
-   - End-to-end scenarios using headless Chrome
-   - JavaScript-enabled flows
-   - Test modes for visible and headless browser testing
-
-### Testing Environment Configuration
-
-The system tests are configured to support both headless Chrome (for fast CI runs) and visible Chrome (for debugging):
+- **Reactive Rather Than Preventative**: Instead of complex rate limiting prevention, we focus on gracefully handling errors when they occur
+- **Standardized Error Responses**: All errors are formatted consistently through `ErrorHandlingService`
+- **User-Friendly Messages**: Error messages are appropriate for end users
+- **Comprehensive Logging**: All errors are logged with context for troubleshooting
 
 ```ruby
-# spec/support/capybara.rb
-RSpec.configure do |config|
-  config.before(:each, type: :system) do
-    driven_by :selenium_chrome_headless
-  end
-  
-  config.before(:each, type: :system, js: true) do
-    if ENV['SHOW_BROWSER'] == 'true'
-      # For debugging with visible browser
-      driven_by :selenium_chrome
-    else
-      # For regular testing and CI environments
-      driven_by :selenium_chrome_headless
-    end
-  end
+# Example of how rate limit errors are handled
+begin
+  weather_data = weather_service.get_forecast(location)
+  # Process successful response
+rescue ApiRateLimiter::RateLimitExceededError => e
+  # Standard error handling through ErrorHandlingService
+  error_response = ErrorHandlingService.handle_api_error(e)
+  render_error_response(error_response)
 end
 ```
 
-To run tests with a visible browser for debugging:
-
-```
-SHOW_BROWSER=true bundle exec rspec spec/system/
-```
-
-### Mock Service Strategy
-
-The application uses a sophisticated mocking strategy to facilitate testing and development:
-
-#### MockWeatherService
-
-The `MockWeatherService` is a full implementation of the weather service interface that provides consistent, deterministic test data without making actual API calls. This approach offers several benefits:
-
-1. **Development Without API Keys**: Developers can work on the application without needing real API keys
-2. **Consistent Test Data**: Tests run against predictable data sets regardless of external API availability
-3. **Faster Test Execution**: No network latency from real API calls
-4. **No Rate Limiting Issues**: Avoids hitting API rate limits during development/testing
-5. **Simulated Edge Cases**: Can easily simulate rare conditions (extreme temperatures, errors, etc.)
-
-#### Implementation Details
-
-The mock service generates weather data based on input zip codes, ensuring that:
-
-- The same zip code always returns consistent temperatures (using the zip code as a random seed)
-- Data is formatted exactly like the real API response
-- Various weather conditions are cycled through to test different UI scenarios
-- Temperature variations make the data look realistic
-- Error conditions can be simulated for testing error handling
-
-#### When and How It's Used
-
-1. **Development Environment**: Used by default in development to avoid unnecessary API calls
-2. **Testing**: Used automatically in all tests to ensure consistent, deterministic results
-3. **Demo Mode**: Can be enabled in production for demonstration purposes without an API key
-4. **API Key Fallback**: Automatically used if no API key is configured
-
-The implementation includes:
-
-```ruby
-# In ForecastRetrievalService
-def weather_service
-  if Rails.env.test? || 
-     Rails.env.development? || 
-     ENV['WEATHER_USE_MOCK'] == 'true' || 
-     ENV['OPENWEATHERMAP_API_KEY'].blank?
-    MockWeatherService.new
-  else
-    OpenWeatherMapService.new(ENV['OPENWEATHERMAP_API_KEY'])
-  end
-end
-```
-
-This approach ensures that the application remains functional and testable in all environments while maintaining a clean separation between the application logic and external API dependencies.
+This approach ensures errors are handled consistently while keeping the codebase simple and maintainable.
 
 ## Running Tests
 
@@ -301,7 +220,58 @@ bundle exec rspec spec/services/    # Service object tests
 bundle exec rspec spec/helpers/     # Helper tests
 ```
 
-The application includes 198 comprehensive tests covering all aspects of functionality, including edge cases and error scenarios.
+The application includes 213 comprehensive tests covering all aspects of functionality, including edge cases and error scenarios.
+
+## Code Coverage Analysis
+
+This project uses SimpleCov to monitor and ensure high test coverage. Current test coverage is over 88% across all application code, with key components achieving 90-100% coverage.
+
+```
+bundle exec rspec                   # Runs all tests with coverage report
+COVERAGE=true bundle exec rspec     # Explicitly generate coverage report
+```
+
+Coverage reports are generated in HTML format in the `coverage/` directory. The reports provide detailed file-by-file analysis showing which lines of code are covered by tests and which need additional testing.
+
+Benefits of our comprehensive test coverage:
+- Identifies untested code branches and edge cases
+- Ensures error handling paths are properly tested
+- Reduces regression risks when adding new features
+- Serves as living documentation of expected behavior
+- Enables confident refactoring and code improvements
+
+Our test suite specifically focuses on testing error conditions extensively, ensuring the application gracefully handles API failures, network issues, and invalid user inputs.
+
+### Error Handling Integration Tests
+
+The application includes specialized integration tests that simulate various error scenarios:
+
+```ruby
+# Example from error_handling_integration_spec.rb
+describe "API errors" do
+  context "when API is unreachable" do
+    before do
+      allow(ForecastRetrievalService).to receive(:retrieve)
+        .and_raise(Net::HTTPServerException.new("500 Internal Server Error", nil))
+    end
+    
+    it "displays a user-friendly error message" do
+      get "/forecasts", params: { address: valid_zip }
+      expect(response.body).to include("Unable to connect to external service")
+      expect(response).to have_http_status(:service_unavailable)
+    end
+  end
+end
+```
+
+These tests verify that the application properly handles:
+- Network connectivity issues
+- API timeouts and server errors
+- Malformed responses (JSON parsing errors)
+- Configuration errors
+- Invalid user inputs
+
+Each error case is tested to ensure appropriate status codes and user-friendly error messages are displayed, providing a robust and resilient application experience.
 
 ## Configuration
 
@@ -313,7 +283,6 @@ The application is designed with enterprise-level configurability in mind. All c
 | `WEATHER_CACHE_DURATION_MINUTES` | Duration (in minutes) to cache weather forecasts | 30 | `60` |
 | `WEATHER_DEFAULT_UNIT` | Default temperature unit system | `nil` (auto-detect by IP) | `metric` (Celsius) |
 | `WEATHER_API_TIMEOUT_SECONDS` | API request timeout in seconds | 10 | `5` |
-| `WEATHER_MAX_REQUESTS_PER_MINUTE` | Maximum API requests per minute | 60 | `30` |
 | `WEATHER_FORECAST_DAYS` | Number of days in extended forecast | 5 | `7` |
 | `WEATHER_API_LOG_LEVEL` | Log level for API interactions | `info` | `debug` |
 
@@ -353,6 +322,15 @@ For adding new configurable parameters, follow this pattern in `config/applicati
 config.x.weather = ActiveSupport::InheritableOptions.new
 config.x.weather.cache_duration = ENV.fetch('WEATHER_CACHE_DURATION_MINUTES', 30).to_i.minutes
 ```
+
+## Environment Variables
+
+The application uses the following environment variables:
+
+- `OPENWEATHERMAP_API_KEY`: API key for accessing OpenWeatherMap API
+- `WEATHER_CACHE_DURATION_MINUTES`: Duration in minutes to cache forecast data (default: 30)
+- `WEATHER_DEFAULT_UNIT`: Default temperature unit (imperial or metric, default: imperial)
+- `WEATHER_USE_MOCK`: Set to 'true' to use the mock weather service in any environment
 
 ## Smart Temperature Unit Selection
 

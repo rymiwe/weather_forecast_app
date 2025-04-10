@@ -33,9 +33,6 @@ RSpec.describe ForecastRetrievalService do
         # Create a more permissive ENV stub
         allow(ENV).to receive(:[]).and_return(nil)
         allow(ENV).to receive(:[]).with('OPENWEATHERMAP_API_KEY').and_return('test_key')
-        
-        # Enable API calls
-        allow(ApiRateLimiter).to receive(:allow_request?).and_return(true)
       end
       
       it "fetches from API when not in cache" do
@@ -112,13 +109,28 @@ RSpec.describe ForecastRetrievalService do
     end
     
     context "with rate limiting" do
-      it "returns nil when rate limit is exceeded" do
-        # Mock rate limiter to reject request
-        allow(ApiRateLimiter).to receive(:allow_request?).and_return(false)
+      it "handles rate limit errors from the API" do
+        # Mock API to return a rate limit error
+        weather_service = instance_double(MockWeatherService)
+        allow(MockWeatherService).to receive(:new).and_return(weather_service)
+        allow(weather_service).to receive(:get_by_address).and_return({
+          error: "Rate limit exceeded for this API key."
+        })
+        
+        # Mock the rate limit error handling
+        expect(ErrorHandlingService).to receive(:handle_rate_limit_exceeded)
+          .with('openweathermap', anything)
+          .and_raise(ErrorHandlingService::RateLimitExceededError)
+          
+        # Mock ZipCodeExtractionService service
+        allow(ZipCodeExtractionService).to receive(:extract_from_address)
+          .with(address).and_return("98101")
+        
+        # Mock ENV for API key
         allow(ENV).to receive(:[]).and_return(nil)
         allow(ENV).to receive(:[]).with('OPENWEATHERMAP_API_KEY').and_return('test_key')
         
-        # Call the service
+        # Call the service and expect the error to be caught
         result = ForecastRetrievalService.retrieve(address, units: units)
         
         # Verify nil is returned
@@ -147,8 +159,6 @@ RSpec.describe ForecastRetrievalService do
         
         allow(ENV).to receive(:[]).and_return(nil)
         allow(ENV).to receive(:[]).with('OPENWEATHERMAP_API_KEY').and_return('test_key')
-        
-        allow(ApiRateLimiter).to receive(:allow_request?).and_return(true)
       end
       
       context "with metric units" do

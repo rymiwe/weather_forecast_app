@@ -42,12 +42,48 @@ RSpec.describe ErrorHandlingService do
       expect(result[:status]).to eq(:unprocessable_entity)
     end
     
+    it 'handles HTTP client errors' do
+      error = Net::HTTPClientException.new('400 Bad Request', nil)
+      
+      result = ErrorHandlingService.handle_api_error(error, context)
+      
+      expect(result[:error]).to include('Unable to connect to external service')
+      expect(result[:status]).to eq(:service_unavailable)
+    end
+    
+    it 'handles HTTP server errors' do
+      error = Net::HTTPServerException.new('500 Internal Server Error', nil)
+      
+      result = ErrorHandlingService.handle_api_error(error, context)
+      
+      expect(result[:error]).to include('Unable to connect to external service')
+      expect(result[:status]).to eq(:service_unavailable)
+    end
+    
+    it 'handles HTTP fatal errors' do
+      error = Net::HTTPFatalError.new('Fatal error', nil)
+      
+      result = ErrorHandlingService.handle_api_error(error, context)
+      
+      expect(result[:error]).to include('Unable to connect to external service')
+      expect(result[:status]).to eq(:service_unavailable)
+    end
+    
     it 'handles network errors with correct status and message' do
       error = Timeout::Error.new('Connection timeout')
       
       result = ErrorHandlingService.handle_api_error(error, context)
       
       expect(result[:error]).to include('Unable to connect')
+      expect(result[:status]).to eq(:service_unavailable)
+    end
+    
+    it 'handles Errno::ECONNREFUSED' do
+      error = Errno::ECONNREFUSED.new('Connection refused')
+      
+      result = ErrorHandlingService.handle_api_error(error, context)
+      
+      expect(result[:error]).to include('Unable to connect to external service')
       expect(result[:status]).to eq(:service_unavailable)
     end
     
@@ -77,6 +113,32 @@ RSpec.describe ErrorHandlingService do
       
       expect(result[:error]).to include('blank')
       expect(result[:status]).to eq(:unprocessable_entity)
+    end
+    
+    it 'formats validation errors' do
+      record = double('ActiveRecord::Base')
+      errors = double('ActiveModel::Errors')
+      
+      allow(record).to receive(:respond_to?).with(:errors).and_return(true)
+      allow(record).to receive(:errors).and_return(errors)
+      allow(errors).to receive(:full_messages).and_return(['Name cannot be blank', 'Email is invalid'])
+      
+      # Stub the logging method to avoid actual logging during tests
+      allow(ErrorHandlingService).to receive(:log_validation_error)
+      
+      result = ErrorHandlingService.handle_validation_error(record, context)
+      expect(result[:status]).to eq(:unprocessable_entity)
+      expect(result[:error]).to include('Name cannot be blank')
+      expect(result[:error]).to include('Email is invalid')
+    end
+    
+    it 'handles non-record objects' do
+      non_record = double('NonRecord')
+      allow(non_record).to receive(:respond_to?).with(:errors).and_return(false)
+      
+      result = ErrorHandlingService.handle_validation_error(non_record, context)
+      expect(result[:status]).to eq(:unprocessable_entity)
+      expect(result[:error]).to include('Invalid data provided')
     end
     
     it 'provides a generic message for non-ActiveRecord objects' do
