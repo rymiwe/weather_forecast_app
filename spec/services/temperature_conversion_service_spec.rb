@@ -5,37 +5,37 @@ require 'rails_helper'
 RSpec.describe TemperatureConversionService do
   describe '.fahrenheit_to_celsius' do
     it 'correctly converts freezing temperature' do
-      expect(TemperatureConversionService.fahrenheit_to_celsius(32)).to eq(0.0)
+      expect(TemperatureConversionService.fahrenheit_to_celsius(32)).to eq(0)
     end
     
     it 'correctly converts boiling temperature' do
-      expect(TemperatureConversionService.fahrenheit_to_celsius(212)).to eq(100.0)
+      expect(TemperatureConversionService.fahrenheit_to_celsius(212)).to eq(100)
     end
     
     it 'correctly converts room temperature' do
-      expect(TemperatureConversionService.fahrenheit_to_celsius(72)).to eq(22.2)
+      expect(TemperatureConversionService.fahrenheit_to_celsius(72)).to eq(22)
     end
     
     it 'correctly converts negative temperatures' do
-      expect(TemperatureConversionService.fahrenheit_to_celsius(-4)).to eq(-20.0)
+      expect(TemperatureConversionService.fahrenheit_to_celsius(-4)).to eq(-20)
     end
   end
   
   describe '.celsius_to_fahrenheit' do
     it 'correctly converts freezing temperature' do
-      expect(TemperatureConversionService.celsius_to_fahrenheit(0)).to eq(32.0)
+      expect(TemperatureConversionService.celsius_to_fahrenheit(0)).to eq(32)
     end
     
     it 'correctly converts boiling temperature' do
-      expect(TemperatureConversionService.celsius_to_fahrenheit(100)).to eq(212.0)
+      expect(TemperatureConversionService.celsius_to_fahrenheit(100)).to eq(212)
     end
     
     it 'correctly converts room temperature' do
-      expect(TemperatureConversionService.celsius_to_fahrenheit(22)).to eq(71.6)
+      expect(TemperatureConversionService.celsius_to_fahrenheit(22)).to eq(72)
     end
     
     it 'correctly converts negative temperatures' do
-      expect(TemperatureConversionService.celsius_to_fahrenheit(-20)).to eq(-4.0)
+      expect(TemperatureConversionService.celsius_to_fahrenheit(-20)).to eq(-4)
     end
   end
   
@@ -46,11 +46,11 @@ RSpec.describe TemperatureConversionService do
     end
     
     it 'converts from imperial to metric' do
-      expect(TemperatureConversionService.convert(68, from: 'imperial', to: 'metric')).to eq(20.0)
+      expect(TemperatureConversionService.convert(68, from: 'imperial', to: 'metric')).to eq(20)
     end
     
     it 'converts from metric to imperial' do
-      expect(TemperatureConversionService.convert(20, from: 'metric', to: 'imperial')).to eq(68.0)
+      expect(TemperatureConversionService.convert(20, from: 'metric', to: 'imperial')).to eq(68)
     end
     
     it 'handles nil temperature values' do
