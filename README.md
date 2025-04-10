@@ -130,64 +130,178 @@ The application implements a database-backed caching mechanism:
 
 1. When a user submits an address, the system attempts to extract a zip code
 2. If a valid zip code is found, the system checks for a recent (< 30 minutes old) forecast
-3. If a cached forecast exists, it is displayed with a "Cached Result" indicator
-4. If no cache exists, the system fetches fresh data from the OpenWeatherMap API
-5. All weather data is saved with a timestamp for cache expiration calculation
+3. If a recent forecast exists, it's retrieved from the database rather than making an API call
+4. When displaying cached forecasts, a clear "Cached Result" indicator is shown to the user
+5. Once the cache expires, the next request triggers a fresh API call
 
-### Caching Strategy Details
+#### Why Database Caching Instead of Redis/Memory Cache
 
-The application implements a **database-backed caching** mechanism:
+This application intentionally uses database-backed caching rather than an in-memory solution like Redis for several enterprise-focused reasons:
 
-#### Current Implementation
+1. **Persistence Across Deployments**: Database caching ensures that cached weather data survives application restarts, deployments, and server migrations. This is critical for enterprise applications where deployments shouldn't disrupt the user experience.
 
-- Weather forecast data is stored in the PostgreSQL database
-- The `forecasts` table stores complete forecast records with ZIP code as a lookup key
-- Records include a `queried_at` timestamp used to determine cache freshness
-- The configurable cache duration (`WEATHER_CACHE_DURATION_MINUTES`) determines how long forecasts are considered valid
-- A database query using a time-based scope identifies valid cached entries:
-  ```ruby
-  scope :recent, -> { where('queried_at >= ?', Rails.configuration.x.weather.cache_duration.ago).order(queried_at: :desc) }
-  ```
+2. **No Additional Infrastructure**: Many enterprises prefer minimizing infrastructure components. By using the existing database, we avoid adding another system (Redis) that would require monitoring, maintenance, and scaling considerations.
 
-#### Advantages of Database Caching
+3. **Transactional Consistency**: Database caching allows cache operations to participate in database transactions, ensuring data consistency in complex operations.
 
-- **Simplicity**: No additional infrastructure requirements beyond the existing database
-- **Persistence**: Cached data survives application restarts and deployments
-- **Data Retention**: Historical weather data remains available for analysis and reporting
-- **Transactional Integrity**: Cache operations participate in database transactions
-- **Admin Visibility**: Cache state is easily inspectable via standard database tools
+4. **Built-in Backup and Recovery**: Enterprise backup strategies already include the database, so cached data is automatically backed up without additional processes.
 
-#### Enterprise Scalability Considerations
+5. **Audit and Inspection**: Database caching makes it easy to inspect the cache state using standard database tools and SQL queries, facilitating troubleshooting and performance analysis.
 
-For high-traffic enterprise deployments, consider implementing a multi-tiered caching strategy:
+6. **Horizontal Scaling Readiness**: In a horizontally scaled application with multiple application servers, database caching ensures all instances share a consistent cache state without complex cache synchronization mechanisms.
 
-1. **L1 Cache (Memory)**: Add Rails.cache with Redis/Memcached as the cache store
-   ```ruby
-   # Example implementation in config/environments/production.rb
-   config.cache_store = :redis_cache_store, { url: ENV['REDIS_URL'] }
-   ```
+7. **Historical Data Preservation**: The database approach allows historical weather data to be preserved for analysis, reporting, and compliance purposes.
 
-2. **L2 Cache (Database)**: Retain the current implementation as a fallback
-   ```ruby
-   # First check memory cache, then database cache
-   def self.find_by_zip(zip_code)
-     Rails.cache.fetch("forecast/#{zip_code}", expires_in: Rails.configuration.x.weather.cache_duration) do
-       find_cached(zip_code) || fetch_and_save_forecast(zip_code)
-     end
-   end
-   ```
+#### Redis/Memory Cache Alternative
 
-3. **Cache Cleanup**: Add a background job to remove stale forecast records
-   ```ruby
-   # Example job that could run daily
-   class StaleDataCleanupJob < ApplicationJob
-     def perform
-       Forecast.where('queried_at < ?', 1.week.ago).delete_all
-     end
-   end
-   ```
+For high-traffic scenarios where cache access speed is critical, the application is designed to be easily extended with a two-tier caching strategy:
+
+```ruby
+def find_forecast(zip_code)
+  # First check fast in-memory/Redis cache
+  if Rails.cache.exist?(cache_key(zip_code))
+    return Rails.cache.read(cache_key(zip_code))
+  end
+
+  # Fall back to database cache
+  cached_forecast = find_by(zip_code: zip_code)
+  if cached_forecast&.fresh?
+    # Populate in-memory cache from database for future requests
+    Rails.cache.write(cache_key(zip_code), cached_forecast, expires_in: 30.minutes)
+    return cached_forecast
+  end
+  
+  # No valid cache found
+  return nil
+end
+```
 
 This tiered approach provides both the performance benefits of in-memory caching and the data persistence advantages of the current database implementation.
+
+## Testing Strategy
+
+The application uses a comprehensive testing approach to ensure reliability:
+
+### Test Tools
+
+- **RSpec**: Primary testing framework for all test types
+- **FactoryBot**: For creating test objects
+- **Capybara**: For system/integration tests
+- **Selenium**: For browser automation in system tests
+
+### Test Types
+
+1. **Unit Tests**: For individual classes and modules
+   - Model tests for validations and business logic
+   - Service object tests for domain logic
+   - Helper tests for view logic
+
+2. **Integration Tests**: 
+   - Request specs for controller actions
+   - API endpoint testing
+
+3. **System Tests**:
+   - End-to-end scenarios using headless Chrome
+   - JavaScript-enabled flows
+   - Test modes for visible and headless browser testing
+
+### Testing Environment Configuration
+
+The system tests are configured to support both headless Chrome (for fast CI runs) and visible Chrome (for debugging):
+
+```ruby
+# spec/support/capybara.rb
+RSpec.configure do |config|
+  config.before(:each, type: :system) do
+    driven_by :selenium_chrome_headless
+  end
+  
+  config.before(:each, type: :system, js: true) do
+    if ENV['SHOW_BROWSER'] == 'true'
+      # For debugging with visible browser
+      driven_by :selenium_chrome
+    else
+      # For regular testing and CI environments
+      driven_by :selenium_chrome_headless
+    end
+  end
+end
+```
+
+To run tests with a visible browser for debugging:
+
+```
+SHOW_BROWSER=true bundle exec rspec spec/system/
+```
+
+### Mock Service Strategy
+
+The application uses a sophisticated mocking strategy to facilitate testing and development:
+
+#### MockWeatherService
+
+The `MockWeatherService` is a full implementation of the weather service interface that provides consistent, deterministic test data without making actual API calls. This approach offers several benefits:
+
+1. **Development Without API Keys**: Developers can work on the application without needing real API keys
+2. **Consistent Test Data**: Tests run against predictable data sets regardless of external API availability
+3. **Faster Test Execution**: No network latency from real API calls
+4. **No Rate Limiting Issues**: Avoids hitting API rate limits during development/testing
+5. **Simulated Edge Cases**: Can easily simulate rare conditions (extreme temperatures, errors, etc.)
+
+#### Implementation Details
+
+The mock service generates weather data based on input zip codes, ensuring that:
+
+- The same zip code always returns consistent temperatures (using the zip code as a random seed)
+- Data is formatted exactly like the real API response
+- Various weather conditions are cycled through to test different UI scenarios
+- Temperature variations make the data look realistic
+- Error conditions can be simulated for testing error handling
+
+#### When and How It's Used
+
+1. **Development Environment**: Used by default in development to avoid unnecessary API calls
+2. **Testing**: Used automatically in all tests to ensure consistent, deterministic results
+3. **Demo Mode**: Can be enabled in production for demonstration purposes without an API key
+4. **API Key Fallback**: Automatically used if no API key is configured
+
+The implementation includes:
+
+```ruby
+# In ForecastRetrievalService
+def weather_service
+  if Rails.env.test? || 
+     Rails.env.development? || 
+     ENV['WEATHER_USE_MOCK'] == 'true' || 
+     ENV['OPENWEATHERMAP_API_KEY'].blank?
+    MockWeatherService.new
+  else
+    OpenWeatherMapService.new(ENV['OPENWEATHERMAP_API_KEY'])
+  end
+end
+```
+
+This approach ensures that the application remains functional and testable in all environments while maintaining a clean separation between the application logic and external API dependencies.
+
+## Running Tests
+
+Run the entire test suite:
+
+```
+bundle exec rspec
+```
+
+Run specific test categories:
+
+```
+bundle exec rspec spec/models/      # Model tests
+bundle exec rspec spec/requests/    # Controller/request tests
+bundle exec rspec spec/system/      # End-to-end browser tests
+bundle exec rspec spec/services/    # Service object tests
+bundle exec rspec spec/helpers/     # Helper tests
+```
+
+The application includes 198 comprehensive tests covering all aspects of functionality, including edge cases and error scenarios.
 
 ## Configuration
 
@@ -374,21 +488,6 @@ This application demonstrates enterprise-grade production quality through the fo
 - **Maintainable Structure**: Logical organization following conventions
 
 This enterprise-ready architecture ensures the application is suitable for production deployment in demanding environments with high reliability, configurability, and maintainability requirements.
-
-## Testing
-
-Run the test suite with:
-
-```
-bundle exec rspec
-```
-
-The application includes comprehensive RSpec tests covering:
-- Model validations, scopes and methods
-- Request specs for controller actions
-- Service layer functionality
-- System tests for complete user flows
-- Test coverage for configurable parameters
 
 ## Scalability Considerations
 
