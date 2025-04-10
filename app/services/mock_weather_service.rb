@@ -12,9 +12,10 @@ class MockWeatherService
   # Fetch current weather data by address
   # @param address [String] Address to get weather for
   # @param units [String] Temperature units ('imperial' for Fahrenheit, 'metric' for Celsius)
+  # @param ip [String] Optional IP address of the requester for location-based customization
   # @return [Hash] Mock weather data
-  def get_by_address(address, units: 'imperial')
-    Rails.logger.debug "MockWeatherService.get_by_address called with: #{address}"
+  def get_by_address(address, units: 'imperial', ip: nil)
+    Rails.logger.debug "MockWeatherService.get_by_address called with: #{address}, ip: #{ip}"
     
     # Extract zip code if present using the centralized service
     zip_code = ZipCodeExtractionService.extract_from_address(address)

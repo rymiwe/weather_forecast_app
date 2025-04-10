@@ -66,5 +66,69 @@ RSpec.describe TemperatureUnitsService do
         expect(result).to eq('metric')
       end
     end
+    
+    context 'with edge cases and error handling' do
+      it 'handles case insensitivity in session values' do
+        # Test with mixed case in session preference
+        session = { temperature_units: 'MeTrIc' }
+        result = TemperatureUnitsService.determine_units(session: session)
+        expect(result).to eq('metric')
+        
+        session = { temperature_units: 'IMPERIAL' }
+        result = TemperatureUnitsService.determine_units(session: session)
+        expect(result).to eq('imperial')
+      end
+      
+      it 'handles invalid session values and falls back to defaults' do
+        # Test with invalid unit in session
+        session = { temperature_units: 'kelvin' } # not a supported unit
+        allow(Rails.configuration.x.weather).to receive(:default_unit).and_return('imperial')
+        
+        result = TemperatureUnitsService.determine_units(session: session)
+        # Should fall back to config default
+        expect(result).to eq('imperial')
+      end
+      
+      it 'handles empty session hash' do
+        allow(Rails.configuration.x.weather).to receive(:default_unit).and_return('metric')
+        result = TemperatureUnitsService.determine_units(session: {})
+        expect(result).to eq('metric')
+      end
+      
+      it 'handles nil session' do
+        allow(Rails.configuration.x.weather).to receive(:default_unit).and_return('imperial')
+        result = TemperatureUnitsService.determine_units(session: nil)
+        expect(result).to eq('imperial')
+      end
+      
+      it 'handles malformed IP addresses' do
+        # No session or config, invalid IP
+        allow(Rails.configuration.x.weather).to receive(:default_unit).and_return(nil)
+        allow(UserLocationService).to receive(:units_for_ip).with('invalid-ip').and_return(nil)
+        
+        result = TemperatureUnitsService.determine_units(ip_address: 'invalid-ip')
+        # Should default to imperial as fallback
+        expect(result).to eq('imperial')
+      end
+      
+      it 'handles unexpected errors in IP lookup' do
+        # No session or config, IP service raises error
+        allow(Rails.configuration.x.weather).to receive(:default_unit).and_return(nil)
+        allow(UserLocationService).to receive(:units_for_ip).with('1.2.3.4').and_raise(StandardError.new("API error"))
+        
+        # Should handle the error and return default fallback
+        result = TemperatureUnitsService.determine_units(ip_address: '1.2.3.4')
+        expect(result).to eq('imperial')
+      end
+      
+      it 'handles all inputs being nil' do
+        # No session, config, or IP
+        allow(Rails.configuration.x.weather).to receive(:default_unit).and_return(nil)
+        
+        result = TemperatureUnitsService.determine_units
+        # Should return default imperial as ultimate fallback
+        expect(result).to eq('imperial')
+      end
+    end
   end
 end

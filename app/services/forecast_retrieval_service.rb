@@ -61,7 +61,11 @@ class ForecastRetrievalService
     
     # Fetch data from service
     weather_service = MockWeatherService.new(api_key)
-    weather_data = weather_service.get_by_address(@address, units: @units)
+    weather_data = if @request_ip
+                    weather_service.get_by_address(@address, units: @units, ip: @request_ip)
+                  else
+                    weather_service.get_by_address(@address, units: @units)
+                  end
     
     if weather_data[:error]
       Rails.logger.error "API Error: #{weather_data[:error]}"
@@ -75,15 +79,15 @@ class ForecastRetrievalService
     low_temp = weather_data[:low_temp]
     
     # Save temperatures in Celsius (our normalized format) as integers
-    if @units == 'imperial'
+    if @units == 'imperial' && !current_temp.nil?
       current_temp = TemperatureConversionService.fahrenheit_to_celsius(current_temp.to_f)
-      high_temp = TemperatureConversionService.fahrenheit_to_celsius(high_temp.to_f)
-      low_temp = TemperatureConversionService.fahrenheit_to_celsius(low_temp.to_f)
-    else
+      high_temp = high_temp.nil? ? nil : TemperatureConversionService.fahrenheit_to_celsius(high_temp.to_f)
+      low_temp = low_temp.nil? ? nil : TemperatureConversionService.fahrenheit_to_celsius(low_temp.to_f)
+    elsif !current_temp.nil?
       # Ensure Celsius values are also rounded integers
       current_temp = current_temp.to_f.round
-      high_temp = high_temp.to_f.round
-      low_temp = low_temp.to_f.round
+      high_temp = high_temp.nil? ? nil : high_temp.to_f.round
+      low_temp = low_temp.nil? ? nil : low_temp.to_f.round
     end
     
     # Create the forecast with normalized temperatures

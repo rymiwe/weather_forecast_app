@@ -3,17 +3,44 @@
 # Service for determining temperature units based on user preference, config, or IP
 # Follows enterprise best practices by isolating this concern
 class TemperatureUnitsService
-  # Determine temperature units preference
-  # @param session [Hash] The user's session data
-  # @param ip_address [String] The user's IP address
-  # @return [String] 'imperial' or 'metric'
+  # Determine the appropriate temperature units based on available information
+  # @param session [Hash] User's session with potential temperature_units key
+  # @param ip_address [String] User's IP address for location-based detection
+  # @return [String] Temperature units to use ('metric' or 'imperial')
   def self.determine_units(session: nil, ip_address: nil)
-    # Priority: User preference > Environment setting > IP-based detection
-    session_preference = session && session[:temperature_units]
+    # Priority 1: Check session preference if available
+    if session.present? && session[:temperature_units].present?
+      session_pref = session[:temperature_units].to_s.downcase
+      return valid_units_or_default(session_pref)
+    end
     
-    session_preference || 
-      config_default || 
-      ip_based_units(ip_address)
+    # Priority 2: Check app configuration default
+    config_default = Rails.configuration.x.weather.default_unit
+    return config_default if config_default.present?
+    
+    # Priority 3: Use IP-based detection if available
+    if ip_address.present?
+      begin
+        ip_units = UserLocationService.units_for_ip(ip_address)
+        return ip_units if ip_units.present?
+      rescue StandardError => e
+        Rails.logger.error "IP-based unit detection error: #{e.message}"
+        # Fall through to default on error
+      end
+    end
+    
+    # Final fallback: Use imperial as default
+    'imperial'
+  end
+  
+  private
+  
+  # Ensure the units value is one of the valid options
+  # @param units [String] The units string to validate
+  # @return [String] Valid units or 'imperial' as default
+  def self.valid_units_or_default(units)
+    valid_units = ['metric', 'imperial']
+    valid_units.include?(units) ? units : 'imperial'
   end
   
   private_class_method

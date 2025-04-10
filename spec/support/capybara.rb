@@ -8,8 +8,15 @@ RSpec.configure do |config|
     driven_by :selenium_chrome_headless
   end
   
-  # Use this when you want to see the browser in action
+  # Default to headless Chrome for JavaScript tests for CI environment and better performance
+  # Use `SHOW_BROWSER=true bundle exec rspec` to see the browser during test execution
   config.before(:each, type: :system, js: true) do
-    driven_by :selenium_chrome
+    if ENV['SHOW_BROWSER'] == 'true'
+      # For debugging with visible browser
+      driven_by :selenium_chrome
+    else
+      # For regular testing and CI environments
+      driven_by :selenium_chrome_headless
+    end
   end
 end
