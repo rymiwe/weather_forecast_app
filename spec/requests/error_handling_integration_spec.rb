@@ -6,38 +6,38 @@ RSpec.describe "Error Handling Integration", type: :request do
   describe "API errors" do
     before do
       # Mock at the service level that's called directly by the controller
-      allow(ForecastRetrievalService).to receive(:retrieve)
+      allow(FindOrCreateForecastService).to receive(:call)
     end
     
     context "when API is unreachable" do
       before do
-        allow(ForecastRetrievalService).to receive(:retrieve)
-          .and_raise(Net::HTTPServerException.new("500 Internal Server Error", nil))
+        allow(FindOrCreateForecastService).to receive(:call)
+          .and_raise(ApiClientBase::ApiError.new("Unable to connect to weather service"))
       end
       
       it "displays a user-friendly error message" do
         get "/forecasts", params: { address: valid_zip }
-        expect(response.body).to include("Unable to connect to external service")
+        expect(response.body).to include("Unable to connect to weather service")
         expect(response).to have_http_status(:service_unavailable)
       end
     end
     
     context "when API times out" do
       before do
-        allow(ForecastRetrievalService).to receive(:retrieve)
-          .and_raise(Timeout::Error.new("Request timed out"))
+        allow(FindOrCreateForecastService).to receive(:call)
+          .and_raise(ApiClientBase::ApiError.new("Request timed out"))
       end
       
       it "displays a timeout error message" do
         get "/forecasts", params: { address: valid_zip }
-        expect(response.body).to include("Unable to connect to external service")
+        expect(response.body).to include("Unable to connect to weather service")
         expect(response).to have_http_status(:service_unavailable)
       end
     end
     
     context "when API returns malformed JSON" do
       before do
-        allow(ForecastRetrievalService).to receive(:retrieve)
+        allow(FindOrCreateForecastService).to receive(:call)
           .and_raise(JSON::ParserError.new("Unexpected token"))
       end
       
@@ -50,8 +50,8 @@ RSpec.describe "Error Handling Integration", type: :request do
     
     context "when API rate limit is exceeded" do
       before do
-        allow(ForecastRetrievalService).to receive(:retrieve)
-          .and_raise(ErrorHandlingService::RateLimitError.new("Rate limit exceeded"))
+        allow(FindOrCreateForecastService).to receive(:call)
+          .and_raise(ApiClientBase::RateLimitExceededError.new("Rate limit exceeded"))
       end
       
       it "displays a rate limit error message" do
@@ -63,27 +63,27 @@ RSpec.describe "Error Handling Integration", type: :request do
     
     context "when there's a configuration error" do
       before do
-        allow(ForecastRetrievalService).to receive(:retrieve)
-          .and_raise(ErrorHandlingService::ConfigurationError.new("Missing API key"))
+        allow(FindOrCreateForecastService).to receive(:call)
+          .and_raise(ApiClientBase::ConfigurationError.new("Missing API key"))
       end
       
       it "displays a configuration error message" do
         get "/forecasts", params: { address: valid_zip }
-        expect(response.body).to include("Service configuration error")
-        expect(response).to have_http_status(:service_unavailable)
+        expect(response.body).to include("An error occurred")
+        expect(response).to have_http_status(:internal_server_error)
       end
     end
     
     context "when there's a network connection error" do
       before do
-        allow(ForecastRetrievalService).to receive(:retrieve)
+        allow(FindOrCreateForecastService).to receive(:call)
           .and_raise(Errno::ECONNREFUSED.new("Connection refused"))
       end
       
       it "handles connection errors gracefully" do
         get "/forecasts", params: { address: valid_zip }
-        expect(response.body).to include("Unable to connect to external service")
-        expect(response).to have_http_status(:service_unavailable)
+        expect(response.body).to include("An error occurred")
+        expect(response).to have_http_status(:internal_server_error)
       end
     end
   end
@@ -93,24 +93,22 @@ RSpec.describe "Error Handling Integration", type: :request do
       it "returns an error for empty address" do
         get "/forecasts", params: { address: "" }
         # Check for a validation error message
-        expect(response.body).to include("address")
+        expect(response.body).to include("Please provide an address")
         expect(response).to have_http_status(:unprocessable_entity)
       end
     end
     
     context "with invalid address format" do
       before do
-        # Mock the zip code extraction to simulate a processing error
-        allow(ZipCodeExtractionService).to receive(:extract_from_address)
-          .with("not-a-valid-zip").and_return(nil)
-          
-        allow(ForecastRetrievalService).to receive(:retrieve)
-          .and_raise(ArgumentError.new("Invalid address format"))
+        # Mock the service to simulate a processing error for invalid address
+        allow(FindOrCreateForecastService).to receive(:call)
+          .with(address: "not-a-valid-zip", request_ip: anything)
+          .and_return(nil)
       end
       
       it "returns an error for invalid address format" do
         get "/forecasts", params: { address: "not-a-valid-zip" }
-        expect(response.body).to include("Invalid")
+        expect(response.body).to include("Unable to find weather data")
         expect(response).to have_http_status(:unprocessable_entity)
       end
     end
@@ -119,9 +117,9 @@ RSpec.describe "Error Handling Integration", type: :request do
   describe "Error recovery" do
     context "when a service recovers after failure" do
       it "handles successful requests after previous failures" do
-        # First mock a failure - use any matcher for parameters
-        allow(ForecastRetrievalService).to receive(:retrieve)
-          .and_raise(Timeout::Error.new("Request timed out"))
+        # First mock a failure
+        allow(FindOrCreateForecastService).to receive(:call)
+          .and_raise(ApiClientBase::ApiError.new("Request timed out"))
         
         get "/forecasts", params: { address: valid_zip }
         expect(response).to have_http_status(:service_unavailable)
@@ -146,16 +144,12 @@ RSpec.describe "Error Handling Integration", type: :request do
           extended_forecast: extended_forecast_data.to_json,
           extended_forecast_data: extended_forecast_data,
           cached?: false,
-          queried_at: Time.now
+          queried_at: Time.now,
+          display_units: 'metric'
         )
         
-        # Add any additional methods the view might call
-        allow(mock_forecast).to receive(:address_for_display).and_return("Beverly Hills, CA 90210")
-        allow(mock_forecast).to receive(:cache_status).and_return("Fresh data")
-        allow(mock_forecast).to receive(:persisted?).and_return(true)
-        
         # Reset the stub and make it return the mock forecast
-        allow(ForecastRetrievalService).to receive(:retrieve)
+        allow(FindOrCreateForecastService).to receive(:call)
           .and_return(mock_forecast)
         
         get "/forecasts", params: { address: valid_zip }

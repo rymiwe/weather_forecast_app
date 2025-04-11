@@ -19,18 +19,21 @@ module WeatherForecastApp
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w(assets tasks))
 
-    # Application specific configuration
+    # Weather app configuration
     config.x.weather = ActiveSupport::InheritableOptions.new
     
-    # Cache duration in minutes (default: 30 minutes)
+    # Cache duration for weather data
     config.x.weather.cache_duration_minutes = ENV.fetch('WEATHER_CACHE_DURATION_MINUTES', 30).to_i
-    config.x.weather.cache_duration = config.x.weather.cache_duration_minutes.minutes
+    config.x.weather.cache_ttl = config.x.weather.cache_duration_minutes.minutes
     
-    # Default temperature unit (nil means detect from IP)
-    config.x.weather.default_unit = ENV.fetch('WEATHER_DEFAULT_UNIT', 'imperial')
+    # Always store weather data in metric units for consistency
+    config.x.weather.storage_unit = 'metric'
     
-    # Fixed number of forecast days (free tier supports 5)
+    # Number of days to display in forecast
     config.x.weather.forecast_days = 5
+    
+    # Whether to use the mock client (default to false if not set)
+    config.x.weather.use_mock_client = ENV.fetch('USE_MOCK_WEATHER_CLIENT', 'false').downcase == 'true'
 
     # Configuration for the application, engines, and railties goes here.
     #

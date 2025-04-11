@@ -1,136 +1,204 @@
-<div class="max-w-4xl mx-auto p-6">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold">Detailed Forecast</h1>
-    <div class="flex items-center space-x-4">
-      <div class="flex items-center space-x-2">
-        <span class="text-sm font-medium text-gray-600">Units:</span>
-        <%= link_to "°F", { controller: 'forecasts', action: 'show', id: @forecast.id, units: 'imperial' }, 
-                    class: "px-2 py-1 rounded-md text-sm #{session[:temperature_units] != 'metric' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}" %>
-        <%= link_to "°C", { controller: 'forecasts', action: 'show', id: @forecast.id, units: 'metric' }, 
-                    class: "px-2 py-1 rounded-md text-sm #{session[:temperature_units] == 'metric' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}" %>
+<%# Forecast Show View %>
+<% content_for :title, "Weather for #{@forecast.address}" %>
+
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+  <!-- Search form at the top -->
+  <div class="mb-6">
+    <%= form_with url: search_forecasts_path, method: :get, data: { turbo: false }, class: "flex flex-wrap gap-2" do |form| %>
+      <div class="flex-grow">
+        <%= form.text_field :address, value: @search_query, class: "w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500", placeholder: "Enter a location (city, zip code, or address)" %>
       </div>
-      <%= link_to "Back to Search", forecasts_path, class: "px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md transition-colors" %>
-    </div>
+      <%= form.submit "Search", name: "button", class: "bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" %>
+    <% end %>
   </div>
-  
-  <div class="bg-white shadow-md rounded-lg overflow-hidden">
-    <!-- Location and timestamp info -->
-    <div class="p-6 border-b">
-      <div class="flex justify-between items-start">
-        <div>
-          <h2 class="text-2xl font-bold"><%= @forecast.address %></h2>
-          <p class="text-gray-500">
-            <%= @forecast.queried_at.strftime("%A, %B %d, %Y at %I:%M %p") %>
-          </p>
-          <% if @forecast.zip_code.present? %>
-            <p class="text-gray-500">ZIP Code: <%= @forecast.zip_code %></p>
-          <% end %>
+
+  <div class="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+    <div class="p-4 bg-white">
+      <h2 class="text-xl font-bold"><%= @forecast.address %></h2>
+      <% 
+        # Get timezone offset from API if available
+        timezone_offset = 0
+        if @forecast.forecast_data.present? && @forecast.forecast_data['current_weather'].present?
+          timezone_offset = @forecast.forecast_data['current_weather']['timezone'] || 0
+        end
+        # Create time with proper timezone
+        local_time = Time.current.utc.advance(seconds: timezone_offset)
+        # Calculate timezone string
+        timezone_hours = (timezone_offset / 3600.0).round(1)
+        timezone_string = timezone_hours >= 0 ? "+#{timezone_hours}" : "#{timezone_hours}"
+      %>
+      <p class="text-sm text-gray-600"><%= local_time.strftime("%A, %B %d, %Y at %I:%M %p") %> (UTC<%= timezone_string %>)</p>
+    </div>
+    
+    <div class="bg-gray-100 p-4">
+      <h3 class="text-lg font-semibold mb-4">Weather Forecast</h3>
+      
+      <div class="flex flex-col space-y-2">
+        <!-- Today's weather card -->
+        <div class="border border-blue-200 rounded-lg bg-white p-3">
+          <div class="text-center">
+            <div class="text-blue-700 font-semibold">Today</div>
+            <div class="text-xs text-gray-500"><%= local_time.strftime('%m/%d') %></div>
+            
+            <div class="my-1">
+              <% icon_name = weather_icon_name(@forecast.conditions) %>
+              <%= render partial: 'shared/weather_icons', locals: { icon_name: icon_name, size_class: 'w-12 h-12 mx-auto' } %>
+            </div>
+            
+            <div class="font-bold text-lg">Now: <%= @forecast.current_temp_display %></div>
+            <div class="text-gray-700 text-sm"><%= @forecast.high_low_display %></div>
+            <div class="text-blue-600 text-sm mt-1"><%= @forecast.conditions.titleize %></div>
+          </div>
         </div>
-        <% if @forecast.cached? %>
-          <div class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
-            Cached Result
+        
+        <!-- Extended forecast days in a horizontal row -->
+        <% daily_forecasts = @forecast.daily_forecasts %>
+        <% if daily_forecasts.present? %>
+          <% days = get_forecast_days(daily_forecasts) %>
+          <div class="grid grid-cols-5 gap-2">
+            <% days.first(5).each do |day| %>
+              <div class="border border-blue-200 rounded-lg bg-white p-2">
+                <div class="text-center">
+                  <div class="text-blue-700 font-semibold text-sm"><%= day[:date].strftime('%a') %></div>
+                  <div class="text-xs text-gray-500"><%= day[:date].strftime('%m/%d') %></div>
+                  
+                  <div class="flex justify-center my-1">
+                    <% icon_name = weather_icon_name(day[:condition]) %>
+                    <%= render partial: 'shared/weather_icons', locals: { icon_name: icon_name, size_class: 'w-8 h-8' } %>
+                  </div>
+                  
+                  <div class="text-gray-700 text-xs"><%= format_temp(day[:high_temp], @units) %> / <%= format_temp(day[:low_temp], @units) %></div>
+                  <div class="text-blue-600 text-xs truncate" title="<%= day[:condition].titleize %>"><%= day[:condition].titleize %></div>
+                </div>
+              </div>
+            <% end %>
           </div>
         <% end %>
       </div>
     </div>
     
-    <!-- Current conditions -->
-    <div class="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-      <div class="flex justify-between items-center">
-        <div class="flex items-center gap-3">
-          <div class="text-white">
-            <%= weather_icon(@forecast.conditions, "h-16 w-16 text-white") %>
-          </div>
-          <div>
-            <p class="text-xl opacity-90"><%= @forecast.conditions.titleize %></p>
-            <h3 class="text-5xl font-bold mt-1"><%= display_temperature(@forecast.current_temp, session[:temperature_units], size: '2xl') %></h3>
-          </div>
-        </div>
-        <div class="text-right">
-          <div class="flex items-center justify-end gap-1">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-            </svg>
-            <div class="flex flex-col items-center justify-center">
-              <span class="text-3xl text-gray-900 font-bold"><%= display_temperature(@forecast.high_temp, session[:temperature_units], size: 'xl') %></span>
-              <span class="text-sm text-gray-500">High</span>
-            </div>
-          </div>
-          <div class="flex items-center justify-end gap-1 mt-1">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-            </svg>
-            <div class="flex flex-col items-center justify-center">
-              <span class="text-3xl text-gray-900 font-bold"><%= display_temperature(@forecast.low_temp, session[:temperature_units], size: 'xl') %></span>
-              <span class="text-sm text-gray-500">Low</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="border-t border-gray-200 p-2 text-right">
+      <button id="toggleBtn" class="text-blue-600 text-sm hover:text-blue-800 flex items-center ml-auto" onclick="toggleDetails()">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+        Technical Information
+      </button>
     </div>
     
-    <!-- Extended forecast -->
-    <% if @forecast.extended_forecast.present? %>
-      <div class="p-6">
-        <h4 class="text-lg font-semibold mb-4">5-Day Forecast</h4>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">High / Low</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conditions</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <% @forecast.extended_forecast_data.each do |day| %>
-                <tr>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    <%= day['day_name'] %>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <%= day['date'] %>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <span class="font-medium text-red-600"><%= display_temperature(day['high'], session[:temperature_units], size: 'sm') %></span> / 
-                    <span class="font-medium text-blue-600"><%= display_temperature(day['low'], session[:temperature_units], size: 'sm') %></span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div class="flex items-center gap-2">
-                      <%= weather_icon(day['conditions'].first, "h-5 w-5 text-gray-600") %>
-                      <span><%= day['conditions'].join(', ') %></span>
-                    </div>
-                  </td>
-                </tr>
+    <!-- Technical Details Section (hidden by default) -->
+    <div id="technicalDetails" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+      <!-- Metadata first, as requested -->
+      <div class="mb-4">
+        <h4 class="text-md font-semibold">Metadata</h4>
+        <% 
+          # Calculate cache expiry time in local timezone
+          cache_expiry = @forecast.queried_at + 30.minutes
+          cache_expiry_local = cache_expiry.utc.advance(seconds: timezone_offset)
+          minutes_until_expiry = ((cache_expiry - Time.current) / 60).round
+        %>
+        <table class="w-full text-xs mt-2">
+          <tr>
+            <td class="p-1 border border-gray-300 bg-gray-100">Queried At</td>
+            <td class="p-1 border border-gray-300">
+              <%= @forecast.queried_at.utc.advance(seconds: timezone_offset).strftime("%Y-%m-%d %H:%M:%S") %> (UTC<%= timezone_string %>)
+            </td>
+          </tr>
+          <tr>
+            <td class="p-1 border border-gray-300 bg-gray-100">Cache Status</td>
+            <td class="p-1 border border-gray-300">
+              <%= @forecast.cache_fresh? ? "Fresh" : "Expired" %>
+              <% if @forecast.cache_fresh? %>
+                - Expires at <%= cache_expiry_local.strftime("%H:%M:%S") %> 
+                (<%= minutes_until_expiry > 0 ? "#{minutes_until_expiry} minutes remaining" : "expired" %>)
               <% end %>
-            </tbody>
-          </table>
-        </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="p-1 border border-gray-300 bg-gray-100">Display Units</td>
+            <td class="p-1 border border-gray-300"><%= @forecast.display_units %></td>
+          </tr>
+          <tr>
+            <td class="p-1 border border-gray-300 bg-gray-100">Zip Code</td>
+            <td class="p-1 border border-gray-300"><%= @forecast.zip_code || "N/A" %></td>
+          </tr>
+          <tr>
+            <td class="p-1 border border-gray-300 bg-gray-100">Timezone Offset</td>
+            <td class="p-1 border border-gray-300"><%= timezone_offset %> seconds (UTC<%= timezone_string %>)</td>
+          </tr>
+        </table>
       </div>
-    <% end %>
-    
-    <!-- Technical info -->
-    <div class="p-6 bg-gray-50 border-t">
-      <h4 class="text-lg font-semibold mb-4">Technical Information</h4>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <h5 class="text-sm font-medium text-gray-500">FORECAST ID</h5>
-          <p class="mt-1"><%= @forecast.id %></p>
-        </div>
-        <div>
-          <h5 class="text-sm font-medium text-gray-500">QUERIED AT</h5>
-          <p class="mt-1"><%= @forecast.queried_at %></p>
-        </div>
-        <div>
-          <h5 class="text-sm font-medium text-gray-500">CACHE STATUS</h5>
-          <p class="mt-1"><%= @forecast.cached? ? "From Cache" : "Fresh Data" %></p>
-        </div>
-        <div>
-          <h5 class="text-sm font-medium text-gray-500">CACHE EXPIRES</h5>
-          <p class="mt-1"><%= @forecast.cache_expires_at.strftime("%I:%M %p") %></p>
-        </div>
+      
+      <!-- Raw weather data after metadata -->
+      <h3 class="text-md font-semibold mb-2">Raw Weather Data</h3>
+      <div class="overflow-x-auto">
+        <pre class="text-xs bg-gray-100 p-2 rounded"><code><%= JSON.pretty_generate(@forecast.forecast_data || {}) %></code></pre>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+  function toggleDetails() {
+    const details = document.getElementById('technicalDetails');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const svg = toggleBtn.querySelector('svg');
+    
+    if (details.classList.contains('hidden')) {
+      // Show details
+      details.classList.remove('hidden');
+      svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>';
+    } else {
+      // Hide details
+      details.classList.add('hidden');
+      svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>';
+    }
+  }
+  
+  function get_forecast_days(forecast_list) {
+    const days = [];
+    const dayMap = new Map();
+    
+    forecast_list.forEach(item => {
+      const date = new Date(item.dt * 1000);
+      const dayKey = date.toISOString().split('T')[0];
+      
+      if (!dayMap.has(dayKey)) {
+        dayMap.set(dayKey, {
+          date: date,
+          high_temp: item.main.temp_max,
+          low_temp: item.main.temp_min,
+          condition: item.weather[0].description,
+          temps: [item.main.temp]
+        });
+      } else {
+        const day = dayMap.get(dayKey);
+        day.high_temp = Math.max(day.high_temp, item.main.temp_max);
+        day.low_temp = Math.min(day.low_temp, item.main.temp_min);
+        day.temps.push(item.main.temp);
+      }
+    });
+    
+    return Array.from(dayMap.values());
+  }
+  
+  function format_temp(temp, units) {
+    if (units === 'imperial') {
+      return Math.round((temp * 9/5) + 32) + '°F';
+    } else {
+      return Math.round(temp) + '°C';
+    }
+  }
+  
+  // Execute on page load to make sure toggle button works
+  document.addEventListener('DOMContentLoaded', function() {
+    // Make sure the toggle button sets up correctly
+    const toggleBtn = document.getElementById('toggleBtn');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        toggleDetails();
+      });
+    }
+  });
+</script>

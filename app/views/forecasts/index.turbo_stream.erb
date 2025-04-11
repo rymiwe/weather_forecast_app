@@ -22,21 +22,21 @@
       <div class="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
         <div class="flex justify-between items-center">
           <div>
-            <p class="text-xl opacity-90"><%= @forecast.conditions.titleize %></p>
-            <h3 class="text-5xl font-bold mt-1"><%= display_temperature(@forecast.current_temp, session[:temperature_units], size: '2xl') %></h3>
+            <p class="text-xl opacity-90"><%= format_conditions(@forecast.conditions) %></p>
+            <h3 class="text-5xl font-bold mt-1"><%= display_temperature(@forecast.current_temp, @units || @forecast.location_based_units, size: '2xl') %></h3>
           </div>
           <div class="text-right">
             <div class="flex items-center justify-end gap-1">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
               </svg>
-              <span class="text-xl"><%= display_temperature(@forecast.high_temp, session[:temperature_units]) %></span>
+              <span class="text-xl"><%= display_temperature(@forecast.high_temp, @units || @forecast.location_based_units) %></span>
             </div>
             <div class="flex items-center justify-end gap-1 mt-1">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd" />
               </svg>
-              <span class="text-xl"><%= display_temperature(@forecast.low_temp, session[:temperature_units]) %></span>
+              <span class="text-xl"><%= display_temperature(@forecast.low_temp, @units || @forecast.location_based_units) %></span>
             </div>
           </div>
         </div>
@@ -52,10 +52,10 @@
                 <p class="font-medium"><%= day['day_name'] %></p>
                 <p class="text-sm text-gray-500"><%= day['date'] %></p>
                 <div class="my-2">
-                  <span class="font-medium text-red-600"><%= display_temperature(day['high'], session[:temperature_units]) %></span> / 
-                  <span class="font-medium text-blue-600"><%= display_temperature(day['low'], session[:temperature_units]) %></span>
+                  <span class="font-medium text-red-600"><%= display_temperature(day['high'], @units || @forecast.location_based_units) %></span> / 
+                  <span class="font-medium text-blue-600"><%= display_temperature(day['low'], @units || @forecast.location_based_units) %></span>
                 </div>
-                <p class="text-sm text-gray-700"><%= day['conditions'].first %></p>
+                <p class="text-sm text-gray-700"><%= format_conditions(day['conditions']) %></p>
               </div>
             <% end %>
           </div>

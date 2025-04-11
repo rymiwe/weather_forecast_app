@@ -1,0 +1,63 @@
+<%# 
+  Renders a weather icon based on the condition name
+  @param icon_name [String] The standardized weather icon name
+  @param size_class [String] CSS class for sizing the SVG
+%>
+
+<% case icon_name 
+   when 'sunny' %>
+  <svg class="<%= size_class %>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-500">
+    <circle cx="12" cy="12" r="5" fill="#FCD34D" stroke="#F59E0B"></circle>
+    <line x1="12" y1="1" x2="12" y2="3"></line>
+    <line x1="12" y1="21" x2="12" y2="23"></line>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+    <line x1="1" y1="12" x2="3" y2="12"></line>
+    <line x1="21" y1="12" x2="23" y2="12"></line>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+  </svg>
+<% when 'partly_cloudy' %>
+  <svg class="<%= size_class %>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2v2" stroke="#F59E0B"></path>
+    <path d="M5.5 5.5l1.5 1.5" stroke="#F59E0B"></path>
+    <path d="M2 12h2" stroke="#F59E0B"></path>
+    <path d="M19 12h2" stroke="#F59E0B"></path>
+    <path d="M17 5.5L15.5 7" stroke="#F59E0B"></path>
+    <path d="M16.5 13a4.5 4.5 0 1 0-8.2-3.8" stroke="#F59E0B"></path>
+    <path d="M16 10a4 4 0 0 0-11.6 6 4 4 0 0 0 .6 7h13.6a2.8 2.8 0 0 0 0-5.6A4 4 0 0 0 16 10z" fill="#E5E7EB" stroke="#6B7280"></path>
+  </svg>
+<% when 'cloudy' %>
+  <svg class="<%= size_class %>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 5a5 5 0 0 0-10 0 5 5 0 0 0-4 8h14a5 5 0 0 0 0-8z" fill="#E5E7EB" stroke="#6B7280"></path>
+  </svg>
+<% when 'rain' %>
+  <svg class="<%= size_class %>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 13a5 5 0 0 0-10 0v2a3 3 0 0 0 2 5h7a2 2 0 0 0 0-4h-1" fill="#E5E7EB" stroke="#6B7280"></path>
+    <line x1="8" y1="19" x2="7" y2="21" stroke="#3B82F6"></line>
+    <line x1="12" y1="19" x2="11" y2="21" stroke="#3B82F6"></line>
+    <line x1="16" y1="19" x2="15" y2="21" stroke="#3B82F6"></line>
+  </svg>
+<% when 'thunderstorm' %>
+  <svg class="<%= size_class %>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 5a5 5 0 0 0-10 0 5 5 0 0 0-4 8h4.5" fill="#E5E7EB" stroke="#6B7280"></path>
+    <path d="M12 11l-1 9l5-6l-2-1l1-6" fill="#FDE68A" stroke="#F59E0B"></path>
+  </svg>
+<% when 'snow' %>
+  <svg class="<%= size_class %>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 13a5 5 0 0 0-10 0v2a3 3 0 0 0 2 5h7a2 2 0 0 0 0-4h-1" fill="#E5E7EB" stroke="#6B7280"></path>
+    <path d="M8 15h.01" stroke="#93C5FD" stroke-width="3" stroke-linecap="round"></path>
+    <path d="M12 17h.01" stroke="#93C5FD" stroke-width="3" stroke-linecap="round"></path>
+    <path d="M16 15h.01" stroke="#93C5FD" stroke-width="3" stroke-linecap="round"></path>
+  </svg>
+<% when 'fog' %>
+  <svg class="<%= size_class %>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 5a5 5 0 0 0-10 0 5 5 0 0 0-4 8h14a5 5 0 0 0 0-8z" fill="#E5E7EB" stroke="#9CA3AF"></path>
+    <line x1="3" y1="15" x2="21" y2="15" stroke="#9CA3AF"></line>
+    <line x1="5" y1="18" x2="19" y2="18" stroke="#9CA3AF"></line>
+  </svg>
+<% else %>
+  <svg class="<%= size_class %>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 5a5 5 0 0 0-10 0 5 5 0 0 0-4 8h14a5 5 0 0 0 0-8z" fill="#E5E7EB" stroke="#6B7280"></path>
+  </svg>
+<% end %>

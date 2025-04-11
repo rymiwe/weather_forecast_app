@@ -29,8 +29,14 @@ gem "tailwindcss-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
+# Use ViewComponent for component-based UI architecture
+gem "view_component"
+
 # IP-based geolocation for regional unit selection
 gem "geocoder"
+
+# Temperature unit conversions
+gem 'ruby-units'
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"

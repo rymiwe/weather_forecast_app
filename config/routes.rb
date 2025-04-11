@@ -8,6 +8,14 @@ Rails.application.routes.draw do
   # Set the root path to forecasts index
   root "forecasts#index"
   
+  # Add our custom routes first so they don't get interpreted as IDs
+  get 'forecasts/search', to: 'forecasts#search', as: :search_forecasts
+  post 'forecasts/search', to: 'forecasts#search'
+  
   # Only define the routes we need (index and show)
-  resources :forecasts, only: [:index, :show]
+  resources :forecasts, only: [:index, :show] do
+    member do
+      post 'set_units'
+    end
+  end
 end
