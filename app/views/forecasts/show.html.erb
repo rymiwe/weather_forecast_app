@@ -77,128 +77,79 @@
       </div>
     </div>
     
-    <div class="border-t border-gray-200 p-2 text-right">
-      <button id="toggleBtn" class="text-blue-600 text-sm hover:text-blue-800 flex items-center ml-auto" onclick="toggleDetails()">
-        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-        </svg>
-        Technical Information
-      </button>
-    </div>
-    
-    <!-- Technical Details Section (hidden by default) -->
-    <div id="technicalDetails" class="hidden border-t border-gray-200 p-4 bg-gray-50">
-      <!-- Metadata first, as requested -->
-      <div class="mb-4">
-        <h4 class="text-md font-semibold">Metadata</h4>
-        <% 
-          # Calculate cache expiry time in local timezone
-          cache_expiry = @forecast.queried_at + 30.minutes
-          cache_expiry_local = cache_expiry.utc.advance(seconds: timezone_offset)
-          minutes_until_expiry = ((cache_expiry - Time.current) / 60).round
-        %>
-        <table class="w-full text-xs mt-2">
-          <tr>
-            <td class="p-1 border border-gray-300 bg-gray-100">Queried At</td>
-            <td class="p-1 border border-gray-300">
-              <%= @forecast.queried_at.utc.advance(seconds: timezone_offset).strftime("%Y-%m-%d %H:%M:%S") %> (UTC<%= timezone_string %>)
-            </td>
-          </tr>
-          <tr>
-            <td class="p-1 border border-gray-300 bg-gray-100">Cache Status</td>
-            <td class="p-1 border border-gray-300">
-              <%= @forecast.cache_fresh? ? "Fresh" : "Expired" %>
-              <% if @forecast.cache_fresh? %>
-                - Expires at <%= cache_expiry_local.strftime("%H:%M:%S") %> 
-                (<%= minutes_until_expiry > 0 ? "#{minutes_until_expiry} minutes remaining" : "expired" %>)
-              <% end %>
-            </td>
-          </tr>
-          <tr>
-            <td class="p-1 border border-gray-300 bg-gray-100">Display Units</td>
-            <td class="p-1 border border-gray-300"><%= @forecast.display_units %></td>
-          </tr>
-          <tr>
-            <td class="p-1 border border-gray-300 bg-gray-100">Zip Code</td>
-            <td class="p-1 border border-gray-300"><%= @forecast.zip_code || "N/A" %></td>
-          </tr>
-          <tr>
-            <td class="p-1 border border-gray-300 bg-gray-100">Timezone Offset</td>
-            <td class="p-1 border border-gray-300"><%= timezone_offset %> seconds (UTC<%= timezone_string %>)</td>
-          </tr>
-        </table>
+    <!-- Technical details section with toggle functionality -->
+    <div data-controller="toggle" class="border-t border-gray-200 bg-white">
+      <!-- Toggle header -->
+      <div class="p-2 text-right">
+        <button 
+          data-action="toggle#toggle"
+          class="text-blue-600 text-sm hover:text-blue-800 flex items-center ml-auto"
+        >
+          <span class="mr-1">Technical Information</span>
+          <svg 
+            data-toggle-target="icon"
+            class="w-3 h-3" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
       </div>
       
-      <!-- Raw weather data after metadata -->
-      <h3 class="text-md font-semibold mb-2">Raw Weather Data</h3>
-      <div class="overflow-x-auto">
-        <pre class="text-xs bg-gray-100 p-2 rounded"><code><%= JSON.pretty_generate(@forecast.forecast_data || {}) %></code></pre>
+      <!-- Content (hidden by default) -->
+      <div 
+        data-toggle-target="content"
+        class="hidden p-4 bg-gray-50 border-t border-gray-200"
+      >
+        <!-- Metadata first, as requested -->
+        <div class="mb-4">
+          <h4 class="text-md font-semibold">Metadata</h4>
+          <% 
+            # Calculate cache expiry time in local timezone
+            cache_expiry = @forecast.queried_at + 30.minutes
+            cache_expiry_local = cache_expiry.utc.advance(seconds: timezone_offset)
+            minutes_until_expiry = ((cache_expiry - Time.current) / 60).round
+          %>
+          <table class="w-full text-xs mt-2">
+            <tr>
+              <td class="p-1 border border-gray-300 bg-gray-100">Queried At</td>
+              <td class="p-1 border border-gray-300">
+                <%= @forecast.queried_at.utc.advance(seconds: timezone_offset).strftime("%Y-%m-%d %H:%M:%S") %> (UTC<%= timezone_string %>)
+              </td>
+            </tr>
+            <tr>
+              <td class="p-1 border border-gray-300 bg-gray-100">Cache Status</td>
+              <td class="p-1 border border-gray-300">
+                <%= @forecast.cache_fresh? ? "Fresh" : "Expired" %>
+                <% if @forecast.cache_fresh? %>
+                  - Expires at <%= cache_expiry_local.strftime("%H:%M:%S") %> 
+                  (<%= minutes_until_expiry > 0 ? "#{minutes_until_expiry} minutes remaining" : "expired" %>)
+                <% end %>
+              </td>
+            </tr>
+            <tr>
+              <td class="p-1 border border-gray-300 bg-gray-100">Display Units</td>
+              <td class="p-1 border border-gray-300"><%= @forecast.display_units %></td>
+            </tr>
+            <tr>
+              <td class="p-1 border border-gray-300 bg-gray-100">Zip Code</td>
+              <td class="p-1 border border-gray-300"><%= @forecast.zip_code || "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="p-1 border border-gray-300 bg-gray-100">Timezone Offset</td>
+              <td class="p-1 border border-gray-300"><%= timezone_offset %> seconds (UTC<%= timezone_string %>)</td>
+            </tr>
+          </table>
+        </div>
+        
+        <!-- Raw weather data after metadata -->
+        <h3 class="text-md font-semibold mb-2">Raw Weather Data</h3>
+        <div class="overflow-x-auto">
+          <pre class="text-xs bg-gray-100 p-2 rounded"><code><%= JSON.pretty_generate(@forecast.forecast_data || {}) %></code></pre>
+        </div>
       </div>
     </div>
   </div>
 </div>
-
-<script>
-  function toggleDetails() {
-    const details = document.getElementById('technicalDetails');
-    const toggleBtn = document.getElementById('toggleBtn');
-    const svg = toggleBtn.querySelector('svg');
-    
-    if (details.classList.contains('hidden')) {
-      // Show details
-      details.classList.remove('hidden');
-      svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>';
-    } else {
-      // Hide details
-      details.classList.add('hidden');
-      svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>';
-    }
-  }
-  
-  function get_forecast_days(forecast_list) {
-    const days = [];
-    const dayMap = new Map();
-    
-    forecast_list.forEach(item => {
-      const date = new Date(item.dt * 1000);
-      const dayKey = date.toISOString().split('T')[0];
-      
-      if (!dayMap.has(dayKey)) {
-        dayMap.set(dayKey, {
-          date: date,
-          high_temp: item.main.temp_max,
-          low_temp: item.main.temp_min,
-          condition: item.weather[0].description,
-          temps: [item.main.temp]
-        });
-      } else {
-        const day = dayMap.get(dayKey);
-        day.high_temp = Math.max(day.high_temp, item.main.temp_max);
-        day.low_temp = Math.min(day.low_temp, item.main.temp_min);
-        day.temps.push(item.main.temp);
-      }
-    });
-    
-    return Array.from(dayMap.values());
-  }
-  
-  function format_temp(temp, units) {
-    if (units === 'imperial') {
-      return Math.round((temp * 9/5) + 32) + '°F';
-    } else {
-      return Math.round(temp) + '°C';
-    }
-  }
-  
-  // Execute on page load to make sure toggle button works
-  document.addEventListener('DOMContentLoaded', function() {
-    // Make sure the toggle button sets up correctly
-    const toggleBtn = document.getElementById('toggleBtn');
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        toggleDetails();
-      });
-    }
-  });
-</script>
