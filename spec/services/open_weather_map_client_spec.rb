@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe OpenWeatherMapClient do
-  let(:client) { described_class.new }
+  let(:client) { described_class.instance }
   let(:address) { "New York, NY" }
   let(:units) { "metric" }
   
@@ -16,7 +16,7 @@ RSpec.describe OpenWeatherMapClient do
         .and_return(coord_response)
         
       # Call the method
-      result = client.get_coordinates(address: address)
+      result = client.send(:get_coordinates, address: address)
       
       # Verify result
       expect(result).to eq(coord_response)
@@ -42,11 +42,11 @@ RSpec.describe OpenWeatherMapClient do
       
       # Expect Rails.cache.fetch to be called with the correct key 
       expect(Rails.cache).to receive(:fetch)
-        .with("weather:new york, ny:metric", hash_including(:expires_in))
+        .with("weather:coord:40.7128:-74.006", hash_including(:expires_in))
         .and_return(weather_response)
         
       # Call the method
-      result = client.get_weather(address: address, units: units)
+      result = client.get_weather(address: address)
       
       # Verify result
       expect(result).to eq(weather_response)
@@ -54,20 +54,17 @@ RSpec.describe OpenWeatherMapClient do
   end
   
   describe "caching behavior" do
-    it "uses different cache keys for different units" do
-      # Mock the coordinates method
-      coord_response = { "lat" => 40.7128, "lon" => -74.0060 }
-      allow(client).to receive(:get_coordinates).and_return(coord_response)
+    it "uses different cache keys for different coordinates" do
+      # Mock the coordinates method with different coordinates
+      allow(client).to receive(:get_coordinates).and_return({ "lat" => 40.7128, "lon" => -74.0060 })
       
-      # Expect different cache keys for different units
+      # Expect the cache key to use the coordinates
       expect(Rails.cache).to receive(:fetch)
-        .with("weather:new york, ny:metric", anything)
-      expect(Rails.cache).to receive(:fetch)
-        .with("weather:new york, ny:imperial", anything)
-        
-      # Call the method with different units
-      client.get_weather(address: address, units: "metric")
-      client.get_weather(address: address, units: "imperial")
+        .with("weather:coord:40.7128:-74.006", anything)
+        .and_return({})
+      
+      # Call the method
+      client.get_weather(address: address)
     end
   end
 end

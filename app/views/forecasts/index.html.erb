@@ -175,22 +175,25 @@
       <div data-controller="toggle" class="mt-6 border-t border-gray-200 bg-white">
         <!-- Toggle button -->
         <div class="p-4 flex justify-center">
-          <button data-action="toggle#toggle" class="text-gray-500 text-xs hover:text-blue-600 flex items-center">
+          <button 
+            data-action="toggle#toggle" 
+            data-toggle-expanded="false"
+            class="text-gray-500 text-xs hover:text-blue-600 flex items-center"
+          >
             <span class="mr-1">Details</span>
-            <svg 
+            <span
               data-toggle-target="icon"
-              class="w-2 h-2 transform transition-transform duration-200" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"></path>
-            </svg>
+              class="transform transition-transform duration-200 inline-block text-sm"
+            >▶</span>
           </button>
         </div>
         
-        <!-- Content (hidden by default) -->
-        <div data-toggle-target="content" class="hidden p-4 bg-gray-50 border-t border-gray-200">
+        <!-- Content (hidden by default with inline style) -->
+        <div 
+          data-toggle-target="content"
+          style="display: none;"
+          class="p-4 bg-gray-50 border-t border-gray-200"
+        >
           <!-- Metadata first, as requested -->
           <div class="mb-4">
             <h4 class="text-md font-semibold">Metadata</h4>

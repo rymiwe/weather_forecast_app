@@ -63,6 +63,10 @@ group :development, :test do
   gem "rails-controller-testing" # For asserting template and request assignments
   gem 'simplecov', require: false
   gem 'terminal-table', require: false
+  
+  # VCR for recording HTTP interactions in tests
+  gem 'vcr'
+  gem 'webmock'
 end
 
 group :test do
