@@ -60,14 +60,14 @@
   padding: 12px !important;
   box-sizing: border-box !important;
   border-radius: 0.5rem !important;
-  border: 1px solid #e5e7eb !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid #d1d5db !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
   transition: transform 0.2s, box-shadow 0.2s !important;
 }
 
 .forecast-card:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Weather container styling */
@@ -119,10 +119,11 @@
   font-size: 1.1rem !important;
   font-weight: 600 !important;
   margin: 0.25rem 0 !important;
+  color: #1a56db !important; /* Slightly darker blue for better contrast */
 }
 
 .high-low-temp {
-  color: #6b7280 !important;
+  color: #4b5563 !important; /* Changed from #6b7280 for better contrast */
   font-size: 0.8rem !important;
 }
 
