@@ -42,7 +42,7 @@
 
   <% if @forecast %>
     <div class="forecast-container rounded-lg overflow-hidden shadow-md">
-      <div class="p-4 pb-0 bg-white">
+      <div class="p-4 pb-0 bg-white border-b border-gray-300">
         <h2 class="text-2xl font-medium text-gray-700 mb-0">
           <% if @forecast.present? %>
             <% location_name = @forecast.forecast_data&.dig('location', 'name') %>
