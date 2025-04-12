@@ -14,8 +14,9 @@ module ForecastsHelper
   # Process forecast list data into daily forecasts
   # @param forecast_list [Array] List of forecast periods from API
   # @param timezone [String] Timezone ID from the API
+  # @param use_imperial [Boolean] Whether to use imperial units
   # @return [Array] Array of daily forecast hashes
-  def get_forecast_days(forecast_list, timezone = nil)
+  def get_forecast_days(forecast_list, timezone = nil, use_imperial = false)
     return [] if forecast_list.blank?
     
     # Handle WeatherAPI.com format (forecastday array)
@@ -32,13 +33,18 @@ module ForecastsHelper
           Date.parse(day['date'])
         end
 
+        # Use imperial or metric temperature values based on preference
+        temp_key_high = use_imperial ? 'maxtemp_f' : 'maxtemp_c'
+        temp_key_low = use_imperial ? 'mintemp_f' : 'mintemp_c'
+        temp_key_avg = use_imperial ? 'avgtemp_f' : 'avgtemp_c'
+
         {
           date: date,
-          high_temp: day.dig('day', 'maxtemp_c'),
-          low_temp: day.dig('day', 'mintemp_c'),
+          high_temp: day.dig('day', temp_key_high),
+          low_temp: day.dig('day', temp_key_low),
           # Pass the complete condition object with icon and text
           condition: day.dig('day', 'condition'),
-          temps: [day.dig('day', 'avgtemp_c')]
+          temps: [day.dig('day', temp_key_avg)]
         }
       end
     end

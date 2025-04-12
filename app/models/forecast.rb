@@ -21,12 +21,12 @@ class Forecast < ApplicationRecord
       temp = forecast_data&.dig('current_weather', 'temp_f') || 
              forecast_data&.dig('current', 'temp_f') || 
              convert_to_fahrenheit(current_temp)
-      "#{temp.round}°F now"
+      "#{temp.round}°F"
     else
       temp = forecast_data&.dig('current_weather', 'temp_c') || 
              forecast_data&.dig('current', 'temp_c') || 
              current_temp
-      "#{temp.round}°C now"
+      "#{temp.round}°C"
     end
   end
   
@@ -73,9 +73,9 @@ class Forecast < ApplicationRecord
   # Check if forecast is for a US location
   # @return [Boolean] true if location is in the US
   def should_use_imperial?
-    # WeatherAPI.com returns country with "USA" for US locations
     country = forecast_data&.dig('location', 'country')
-    country.to_s.include?("USA")
+    country = country.to_s
+    country.include?("United States of America") || country == "USA"
   end
   
   # Get the timezone for the forecast location

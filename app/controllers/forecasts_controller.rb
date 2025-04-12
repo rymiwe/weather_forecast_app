@@ -4,7 +4,6 @@ class ForecastsController < ApplicationController
   # Display forecast search form and results
   def index
     # Home page with search form
-    @recent_forecasts = Forecast.recent.limit(5)
     
     # Handle search if address is provided
     if params[:address].present?
@@ -28,6 +27,9 @@ class ForecastsController < ApplicationController
     flash.clear
     
     search_for_forecast(address)
+    
+    # If no rendering happened in search_for_forecast, render index as fallback
+    render :index unless performed?
   end
   
   private
@@ -64,7 +66,6 @@ class ForecastsController < ApplicationController
     flash.now[:alert] = "We couldn't find weather data for '#{@address}'. Please check the address or zip code and try again."
     @search_error = true
     @search_query = @address
-    @recent_forecasts = Forecast.recent.limit(10)
     @forecast = nil
   end
   
@@ -72,6 +73,5 @@ class ForecastsController < ApplicationController
     flash.now[:alert] = message
     @search_error = true
     @search_query = @address
-    @recent_forecasts = Forecast.recent.limit(5)
   end
 end

@@ -1,12 +1,33 @@
 <%# Consolidated Forecast View %>
 <% content_for :title, @forecast ? "Weather for #{@forecast.address}" : "Weather Forecast" %>
 
-<div class="app-container">
-  <h1 class="text-3xl font-bold text-center mb-8">Weather Forecast</h1>
+<div class="app-container bg-gray-100">
+  <div class="text-center mb-6">
+    <% if @forecast %>
+      <% 
+        # Get timezone from API if available
+        timezone = nil
+        if @forecast.forecast_data.present?
+          timezone_id = @forecast.forecast_data.dig('location', 'tz_id')
+          timezone = ActiveSupport::TimeZone[timezone_id] if timezone_id.present?
+        end
+        # Create time with proper timezone
+        local_time = timezone.present? ? Time.current.in_time_zone(timezone) : Time.current
+      %>
+      <div class="text-3xl font-bold">
+        <%= @forecast.forecast_data&.dig('location', 'name') || @forecast.address %>
+      </div>
+      <div class="text-sm text-gray-600">
+        <%= "#{local_time.strftime('%A, %B %d')} • #{local_time.strftime('%I:%M %p %Z')}" %>
+      </div>
+    <% else %>
+      <div class="text-2xl font-bold">Your Weather</div>
+    <% end %>
+  </div>
   
   <!-- Search form -->
   <div class="search-container">
-    <%= form_with url: search_forecasts_path, method: :get, data: { turbo: false }, class: "search-form" do |form| %>
+    <%= form_with url: search_forecasts_path, method: :get, class: "search-form" do |form| %>
       <div class="search-input-container">
         <%= form.text_field :address, 
             value: @search_query, 
@@ -20,16 +41,21 @@
   </div>
 
   <% if @forecast %>
-    <div class="forecast-container">
-      <div class="p-4 bg-white">
-        <h2 class="text-2xl font-bold mb-4">
+    <div class="forecast-container rounded-lg overflow-hidden shadow-sm">
+      <div class="p-4 pb-0 bg-white border-b border-gray-200">
+        <h2 class="text-2xl font-medium text-gray-700 mb-0">
           <% if @forecast.present? %>
             <% location_name = @forecast.forecast_data&.dig('location', 'name') %>
             <% location_region = @forecast.forecast_data&.dig('location', 'region') %>
             <% location_country = @forecast.forecast_data&.dig('location', 'country') %>
             
             <% if location_name.present? %>
-              Weather for <%= location_name %><%=
+              <span class="flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <%= location_name %><%=
               if location_region.present?
                 ", " + location_region
               end
@@ -38,8 +64,15 @@
                 ", " + location_country
               end
               %>
+              </span>
             <% else %>
-              Weather for <%= @forecast.address %>
+              <span class="flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <%= @forecast.address %>
+              </span>
             <% end %>
           <% else %>
             Weather Forecast
@@ -55,17 +88,19 @@
           # Create time with proper timezone
           local_time = timezone.present? ? Time.current.in_time_zone(timezone) : Time.current
         %>
-        <p class="text-sm text-gray-600"><%= local_time.strftime("%A, %B %d, %Y at %I:%M %p %Z") %></p>
+        <!-- Timestamp removed as it's now displayed at the top of the page -->
       </div>
       
       <!-- Weather data display section -->
-      <div class="weather-data p-4 bg-gray-100">
+      <div class="weather-data p-3 pt-0 bg-white">
         <div class="forecast-cards">
           <!-- Current weather card -->
           <div class="forecast-card">
             <div class="text-center">
               <div class="text-blue-700 font-semibold text-sm">Today</div>
-              <div class="text-xs text-gray-500"><%= local_time.strftime('%-m/%-d') %></div>
+              <% if local_time %>
+                <div class="text-xs text-gray-500"><%= local_time.strftime('%-m/%-d') %></div>
+              <% end %>
               
               <div class="forecast-icon">
                 <% current_condition = @forecast.forecast_data&.dig('current_weather', 'condition') || 
@@ -84,10 +119,11 @@
           
           <!-- Extended forecast -->
           <% if @forecast.daily_forecasts.present? %>
-            <% days = get_forecast_days(@forecast.daily_forecasts, timezone&.name) %>
+            <% use_imperial = @forecast.should_use_imperial? %>
+            <% days = get_forecast_days(@forecast.daily_forecasts, timezone&.name, use_imperial) %>
             <% 
               # Set the current date based on the location's timezone
-              today = local_time.to_date
+              today = local_time&.to_date || Date.current
               # Filter out today from the forecast days to prevent duplication
               future_days = days.reject { |day| day[:date].to_date == today }
               # Take the next two days
@@ -178,27 +214,6 @@
           <div class="overflow-x-auto">
             <pre class="raw-data-container p-2"><code><%= JSON.pretty_generate(@forecast.forecast_data || {}) %></code></pre>
           </div>
-        </div>
-      </div>
-    </div>
-  <% end %>
-  
-  <!-- Recent searches section -->
-  <% if @recent_forecasts.present? && @recent_forecasts.any? %>
-    <div class="mt-8">
-      <h3 class="text-xl font-semibold mb-4">Recent Searches</h3>
-      <div class="bg-white rounded shadow-md p-4">
-        <div class="grid gap-2">
-          <% @recent_forecasts.each do |forecast| %>
-            <div class="p-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
-              <%= link_to forecast.address, 
-                  search_forecasts_path(address: forecast.address), 
-                  class: "text-blue-500 hover:text-blue-700" %>
-              <span class="text-xs text-gray-500">
-                <%= time_ago_in_words(forecast.updated_at) %> ago
-              </span>
-            </div>
-          <% end %>
         </div>
       </div>
     </div>
