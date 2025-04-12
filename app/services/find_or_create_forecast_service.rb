@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 require_relative '../clients/open_weather_map_client'
 require_relative '../clients/mock_open_weather_map_client'
+require_relative '../clients/weather_api_client'
+require_relative '../clients/mock_weather_api_client'
 
 # Service for finding or creating a forecast
 class FindOrCreateForecastService
@@ -63,7 +65,7 @@ class FindOrCreateForecastService
   # Create forecast with mock client
   # @return [Forecast, nil] Created forecast or nil if failed
   def create_with_mock_client
-    client = MockOpenWeatherMapClient.instance
+    client = MockWeatherApiClient.instance
     api_result = client.get_weather(address: @address)
     
     if api_result.nil?
@@ -78,7 +80,7 @@ class FindOrCreateForecastService
   # Create forecast with real client
   # @return [Forecast, nil] Created forecast or nil if failed
   def create_with_real_client
-    client = OpenWeatherMapClient.instance
+    client = WeatherApiClient.instance
     
     begin
       # Get weather data from the API

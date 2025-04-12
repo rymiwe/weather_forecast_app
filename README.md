@@ -14,6 +14,7 @@ A Ruby on Rails 7 application that provides weather forecasts based on user-prov
 - **Hotwire/Turbo Integration**: Interactive UI updates without full page refreshes
 - **ViewComponents**: Reusable UI components for consistent design
 - **Comprehensive Error Handling**: Graceful handling of API failures and network issues
+- **Simplified API Implementation**: Single-call weather retrieval with flexible location input
 
 ## Technical Stack
 
@@ -24,7 +25,7 @@ A Ruby on Rails 7 application that provides weather forecasts based on user-prov
 - Tailwind CSS for styling
 - Hotwire/Turbo for dynamic page updates
 - ViewComponents for modular UI
-- OpenWeatherMap API for weather data
+- WeatherAPI.com for weather data
 
 ## Setup Instructions
 
@@ -56,10 +57,10 @@ A Ruby on Rails 7 application that provides weather forecasts based on user-prov
 
 4. Configure API key and application settings:
    - Copy the example configuration file: `cp config/env.yml.example config/env.yml`
-   - Edit `config/env.yml` and replace `your_api_key_here` with your OpenWeatherMap API key
+   - Edit `config/env.yml` and replace `your_api_key_here` with your WeatherAPI.com API key
    - You can get a free API key by:
-     1. Register at https://home.openweathermap.org/users/sign_up
-     2. After registering, go to your API keys section: https://home.openweathermap.org/api_keys
+     1. Register at https://www.weatherapi.com/
+     2. After registering, go to your API keys section
      3. Copy your API key (or create a new one)
 
 5. Start Redis (optional):
@@ -218,7 +219,28 @@ This application follows these Rails 7 best practices:
 |----------|-------------|---------|
 | `REDIS_URL` | Redis connection URL | `redis://localhost:6379/1` |
 | `WEATHER_CACHE_DURATION_MINUTES` | Weather cache duration in minutes | `30` |
-| `OPENWEATHERMAP_API_KEY` | OpenWeatherMap API key | None (Required) |
+| `WEATHERAPI_KEY` | WeatherAPI.com API key | None (Required) |
+| `OPENWEATHERMAP_API_KEY` | OpenWeatherMap API key (Legacy) | None (Optional) |
+| `USE_MOCK_WEATHER_CLIENT` | Use mock data for development/testing | `false` |
+
+## Weather API Implementation
+
+The application uses WeatherAPI.com as the weather data provider, which offers several advantages:
+
+1. **Single API Call**: Weather data is retrieved with a single API call that handles both location resolution and weather data retrieval, simplifying the implementation.
+
+2. **Flexible Location Input**: The API accepts various location formats including city names, zip codes, and coordinates without requiring separate geocoding.
+
+3. **Consistent Results**: Location inputs are normalized, ensuring consistent results regardless of case or format (e.g., "portland, or" and "Portland, OR" yield the same results).
+
+4. **Comprehensive Data**: Includes current conditions, forecasts, and astronomical data in a single response.
+
+5. **Generous Free Tier**: The free tier includes 1,000,000 calls per month, more than adequate for development and small production deployments.
+
+The implementation follows a clean separation of concerns:
+- `WeatherApiClient` handles the API integration with simple, focused methods
+- `MockWeatherApiClient` provides deterministic test data
+- `FindOrCreateForecastService` orchestrates the data retrieval and storage
 
 ## Running Tests
 

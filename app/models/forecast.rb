@@ -47,15 +47,9 @@ class Forecast < ApplicationRecord
   # Check if forecast is for a US location
   # @return [Boolean] true if location is in the US
   def should_use_imperial?
-    # Check country code from API response first
-    country = forecast_data&.dig('current_weather', 'sys', 'country') || 
-              forecast_data&.dig('sys', 'country')
-    
-    return true if country == 'US'
-    
-    # Fallback to checking the address string
-    address.to_s.match?(/usa|us$|united states|america/i) ||
-      zip_code.to_s.match?(/^\d{5}$/)
+    # WeatherAPI.com consistently uses "USA" for country code
+    country = forecast_data&.dig('location', 'country')
+    country == "USA"
   end
   
   # Get the timezone for the forecast location
@@ -128,7 +122,7 @@ class Forecast < ApplicationRecord
     return nil unless api_response.present?
     
     current = api_response[:current_weather] || api_response["current_weather"]
-    return nil unless current.present? && current["main"].present? && current["weather"].present?
+    return nil unless current.present?
     
     begin
       Rails.logger.info "Forecast.create_from_api_response: Creating forecast for #{address}"
@@ -136,11 +130,33 @@ class Forecast < ApplicationRecord
       # Extract zip code from address if possible
       zip_code = address.to_s.match(/\d{5}/)&.to_s
       
-      # Extract required data from API response
-      current_temp = current["main"]["temp"]
-      high_temp = current["main"]["temp_max"]
-      low_temp = current["main"]["temp_min"]
-      conditions = current["weather"][0]["description"]
+      # Extract required data from API response - adapt to WeatherAPI structure
+      # WeatherAPI provides temp_c/temp_f directly rather than under "main"
+      current_temp = current["temp_c"] || (current.dig("main", "temp") if current["main"])
+      
+      # For high/low temps, we'll use daily forecast data or fallback to current
+      forecast_data = api_response[:forecast] || api_response["forecast"]
+      if forecast_data && forecast_data["forecastday"] && forecast_data["forecastday"].first
+        today = forecast_data["forecastday"].first
+        high_temp = today.dig("day", "maxtemp_c") 
+        low_temp = today.dig("day", "mintemp_c")
+      elsif current["main"] # Legacy OpenWeatherMap format
+        high_temp = current.dig("main", "temp_max")
+        low_temp = current.dig("main", "temp_min")
+      else
+        # If no forecast data, use current temp with small variations
+        high_temp = current_temp + 2
+        low_temp = current_temp - 2
+      end
+      
+      # Get weather conditions
+      if current["condition"] 
+        conditions = current["condition"]["text"]
+      elsif current.dig("weather", 0)
+        conditions = current["weather"][0]["description"]
+      else
+        conditions = "Unknown"
+      end
       
       # Create and return the forecast
       forecast = create(

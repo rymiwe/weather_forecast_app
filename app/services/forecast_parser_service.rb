@@ -18,9 +18,15 @@ class ForecastParserService
   # @param parsed_data [Hash] Parsed forecast data
   # @return [Array] Array of daily forecast data
   def self.extract_daily_forecasts(parsed_data)
-    return [] unless parsed_data&.dig('forecast', 'list').present?
+    # Handle WeatherAPI.com structure
+    if parsed_data&.dig('forecast', 'forecastday').present?
+      return parsed_data['forecast']['forecastday']
+    # Handle OpenWeatherMap structure
+    elsif parsed_data&.dig('forecast', 'list').present?
+      return parsed_data['forecast']['list']
+    end
     
-    parsed_data['forecast']['list']
+    []
   rescue StandardError => e
     Rails.logger.error "Error extracting daily forecasts: #{e.message}"
     []

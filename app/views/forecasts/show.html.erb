@@ -38,11 +38,15 @@
         <div class="border border-blue-200 rounded-lg bg-white p-3">
           <div class="text-center">
             <div class="text-blue-700 font-semibold">Today</div>
-            <div class="text-xs text-gray-500"><%= local_time.strftime('%m/%d') %></div>
+            <div class="text-xs text-gray-500"><%= local_time.strftime('%-m/%-d') %></div>
             
             <div class="my-1">
-              <% icon_name = weather_icon_name(@forecast.conditions) %>
-              <%= render partial: 'shared/weather_icons', locals: { icon_name: icon_name, size_class: 'w-12 h-12 mx-auto' } %>
+              <% current_condition = @forecast.forecast_data&.dig('current_weather', 'condition') || 
+                                     @forecast.forecast_data&.dig('current', 'condition') %>
+              <%= render partial: 'shared/weather_api_icon', locals: { 
+                condition: current_condition || @forecast.conditions, 
+                size_class: 'w-20 h-20 mx-auto' 
+              } %>
             </div>
             
             <div class="font-bold text-lg">Now: <%= @forecast.current_temp_display %></div>
@@ -60,11 +64,15 @@
               <div class="border border-blue-200 rounded-lg bg-white p-2">
                 <div class="text-center">
                   <div class="text-blue-700 font-semibold text-sm"><%= day[:date].strftime('%a') %></div>
-                  <div class="text-xs text-gray-500"><%= day[:date].strftime('%m/%d') %></div>
+                  <div class="text-xs text-gray-500"><%= day[:date].strftime('%-m/%-d') %></div>
                   
                   <div class="flex justify-center my-1">
-                    <% icon_name = weather_icon_name(day[:condition]) %>
-                    <%= render partial: 'shared/weather_icons', locals: { icon_name: icon_name, size_class: 'w-8 h-8' } %>
+                    <% day_condition = day[:condition].is_a?(Hash) ? day[:condition] : 
+                                       { 'text' => day[:condition] } %>
+                    <%= render partial: 'shared/weather_api_icon', locals: { 
+                      condition: day_condition, 
+                      size_class: 'w-10 h-10 mx-auto' 
+                    } %>
                   </div>
                   
                   <div class="text-gray-700 text-xs"><%= format_temp(day[:high_temp], @units) %> / <%= format_temp(day[:low_temp], @units) %></div>

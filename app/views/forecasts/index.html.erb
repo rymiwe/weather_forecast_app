@@ -1,213 +1,180 @@
-<%# Home page with search form %>
-<% content_for :title, "Weather Forecast App" %>
+<%# Consolidated Forecast View %>
+<% content_for :title, @forecast ? "Weather for #{@forecast.address}" : "Weather Forecast" %>
 
-<style>
-  /* Force horizontal layout */
-  .forecast-row {
-    display: flex !important;
-    flex-wrap: wrap !important; /* Allow wrapping on small screens */
-    width: 100% !important;
-    gap: 8px !important; /* Reduce gap to fit all cards */
-    overflow-x: visible !important; /* Prevent horizontal scrolling */
-    justify-content: center !important; /* Center the cards */
-  }
-  
-  .forecast-card {
-    flex: 0 0 calc(33.333% - 8px) !important; /* Exactly 3 cards per row on small screens */
-    width: calc(33.333% - 8px) !important; /* Enforce exact width */
-    min-width: 0 !important; /* Remove min-width to allow exact sizing */
-    max-width: calc(33.333% - 8px) !important; /* Ensure equal sizing on small screens */
-    border-radius: 0 !important; /* Square corners */
-    margin-bottom: 8px !important; /* Add bottom margin for wrapped cards */
-  }
-  
-  /* Medium screen sizes - 4 cards per row */
-  @media (min-width: 640px) {
-    .forecast-card {
-      flex: 0 0 calc(25% - 8px) !important;
-      width: calc(25% - 8px) !important;
-      max-width: calc(25% - 8px) !important;
-    }
-  }
-  
-  /* Large screens - 6 cards per row */
-  @media (min-width: 1024px) {
-    .forecast-card {
-      flex: 0 0 calc(16.666% - 8px) !important;
-      width: calc(16.666% - 8px) !important;
-      max-width: calc(16.666% - 8px) !important;
-    }
-  }
-  
-  .forecast-icon {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    height: 24px !important; /* Even smaller height for icon container */
-    margin: 4px auto !important; /* Keep reduced margin */
-  }
-  
-  /* Override any SVG scaling issues */
-  .forecast-icon svg {
-    width: 20px !important;
-    height: 20px !important;
-    max-width: 20px !important;
-    max-height: 20px !important;
-  }
-  
-  /* Square all corners */
-  .rounded-lg, .rounded-r-lg, .rounded-l-lg {
-    border-radius: 0 !important;
-  }
-  
-  /* Debug borders */
-  .debug-border {
-    border: 1px solid red !important;
-  }
-  
-  /* Toggle rotation class */
-  .rotate-90 {
-    transform: rotate(90deg);
-    transition: transform 0.2s ease;
-  }
-</style>
-
-<div class="container mx-auto px-4 py-8 max-w-6xl">
+<div class="container mx-auto px-4 py-8 max-w-3xl">
   <h1 class="text-3xl font-bold text-center mb-8">Weather Forecast</h1>
   
+  <!-- Add CSS to ensure proper horizontal layout and icon sizing -->
+  <style>
+    .forecast-icon img {
+      max-width: 100%;
+      height: auto;
+      width: auto;
+      max-height: 100%;
+    }
+    
+    .forecast-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 64px; /* Fixed height for icon container */
+    }
+    
+    /* Always display cards in a row on all screen sizes */
+    @media (max-width: 768px) {
+      .forecast-cards {
+        display: flex !important;
+        flex-direction: row !important;
+      }
+      
+      .forecast-card {
+        flex: 1 1 0 !important;
+        min-width: 0 !important; /* Allow cards to shrink */
+      }
+    }
+  </style>
+  
   <div class="mb-8">
-    <%= form_with url: search_forecasts_path, method: :get, local: true, class: "w-full" do |f| %>
-      <div class="flex flex-wrap items-stretch">
-        <div class="flex-grow min-w-0">
-          <%= f.text_field :address, 
-            value: @search_query,
-            placeholder: "Enter city, zip code, or address...", 
-            required: true,
-            autofocus: true,
-            class: "w-full border border-gray-300 px-4 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded-l-md" %>
-        </div>
-        <%= f.button type: "submit", name: "button",
-          class: "bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 transition-colors rounded-r-md whitespace-nowrap" do %>
-          Get Forecast
-        <% end %>
+    <%= form_with url: search_forecasts_path, method: :get, data: { turbo: false }, class: "flex flex-wrap gap-2" do |form| %>
+      <div class="flex-grow">
+        <%= form.text_field :address, 
+            value: @search_query, 
+            class: "w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500", 
+            placeholder: "Enter a location (city, zip code, or address)" %>
       </div>
+      <%= form.submit "Get Forecast", 
+          name: "button", 
+          class: "bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" %>
     <% end %>
   </div>
-
-  <% if !flash[:alert] && flash.now[:alert] %>
-    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-6" role="alert">
-      <span class="block sm:inline"><%= flash.now[:alert] %></span>
-    </div>
-  <% end %>
 
   <% if @forecast %>
     <div class="bg-white shadow-lg border border-gray-200 overflow-hidden mb-6">
       <div class="p-4 bg-white">
-        <h2 class="text-xl font-bold"><%= @forecast.address %></h2>
+        <h2 class="text-2xl font-bold mb-4">
+          <% if @forecast.present? %>
+            <% location_name = @forecast.forecast_data&.dig('location', 'name') %>
+            <% location_region = @forecast.forecast_data&.dig('location', 'region') %>
+            <% location_country = @forecast.forecast_data&.dig('location', 'country') %>
+            
+            <% if location_name.present? %>
+              Weather for <%= location_name %><%=
+              if location_region.present?
+                ", " + location_region
+              end
+              %><%=
+              if location_country.present? && location_country != "United States of America"
+                ", " + location_country
+              end
+              %>
+            <% else %>
+              Weather for <%= @forecast.address %>
+            <% end %>
+          <% else %>
+            Weather Forecast
+          <% end %>
+        </h2>
         <% 
           # Get timezone offset from API if available
           timezone_offset = 0
-          if @forecast.forecast_data.present? && @forecast.forecast_data['current_weather'].present?
-            timezone_offset = @forecast.forecast_data['current_weather']['timezone'] || 0
+          if @forecast.forecast_data.present?
+            timezone_offset = @forecast.forecast_data.dig('location', 'tz_id') || 0
           end
           # Create time with proper timezone
-          local_time = Time.current.utc.advance(seconds: timezone_offset)
-          # Calculate timezone string
-          timezone_hours = (timezone_offset / 3600.0).round(1)
-          timezone_string = timezone_hours >= 0 ? "+#{timezone_hours}" : "#{timezone_hours}"
+          local_time = Time.current
         %>
-        <p class="text-sm text-gray-600"><%= local_time.strftime("%A, %B %d, %Y at %I:%M %p") %> (UTC<%= timezone_string %>)</p>
+        <p class="text-sm text-gray-600"><%= local_time.strftime("%A, %B %d, %Y at %I:%M %p") %></p>
       </div>
       
-      <div class="bg-gray-100 p-4">
-        <h3 class="text-lg font-semibold mb-3">Weather Forecast</h3>
-        
-        <!-- All forecasts in a single row (forced with CSS) -->
-        <% daily_forecasts = @forecast.daily_forecasts %>
-        <% if daily_forecasts.present? %>
-          <% days = get_forecast_days(daily_forecasts) %>
-          
-          <div class="forecast-row">
-            <!-- Current weather card -->
-            <div class="forecast-card border border-gray-300 bg-white p-3">
-              <div class="text-center">
-                <div class="text-blue-700 font-semibold text-sm">Current</div>
-                <div class="text-xs text-gray-500"><%= local_time.strftime('%I:%M %p') %></div>
-                
-                <div class="forecast-icon">
-                  <% icon_name = weather_icon_name(@forecast.conditions) %>
-                  <%= render partial: 'shared/weather_icons', locals: { icon_name: icon_name, size_class: 'w-3 h-3' } %>
-                </div>
-                
-                <div class="font-bold text-sm"><%= @forecast.current_temp_display %></div>
-                <div class="text-gray-700 text-xs"><%= @forecast.high_low_display %></div>
-                <div class="text-blue-600 text-xs truncate" title="<%= @forecast.conditions.titleize %>"><%= @forecast.conditions.titleize %></div>
+      <!-- Weather data display section -->
+      <div class="weather-data p-4 bg-gray-100">
+        <div class="forecast-cards">
+          <!-- Current weather card -->
+          <div class="forecast-card border border-gray-300 bg-white p-3">
+            <div class="text-center">
+              <div class="text-blue-700 font-semibold text-sm">Today</div>
+              <div class="text-xs text-gray-500"><%= local_time.strftime('%-m/%-d') %></div>
+              
+              <div class="forecast-icon">
+                <% current_condition = @forecast.forecast_data&.dig('current_weather', 'condition') || 
+                                       @forecast.forecast_data&.dig('current', 'condition') %>
+                <%= render partial: 'shared/weather_api_icon', locals: { 
+                  condition: current_condition || @forecast.conditions, 
+                  size_class: 'w-20 h-20 mx-auto' 
+                } %>
               </div>
+              
+              <div class="font-bold text-sm"><%= @forecast.current_temp_display %></div>
+              <div class="text-gray-700 text-xs"><%= @forecast.high_low_display %></div>
+              <div class="text-blue-600 text-xs"><%= @forecast.conditions.titleize %></div>
             </div>
-            
-            <!-- Future forecast days -->
+          </div>
+          
+          <!-- Extended forecast -->
+          <% if @forecast.daily_forecasts.present? %>
+            <% days = get_forecast_days(@forecast.daily_forecasts) %>
             <% 
-              # Filter out today's forecast and include 5 future days
-              tomorrow = Time.current.advance(days: 1).to_date
-              future_days = days.select { |day| day[:date].to_date >= tomorrow }.first(5) 
+              today = Date.current
+              # Filter out today from the forecast days to prevent duplication
+              future_days = days.reject { |day| day[:date].to_date == today }
+              # Take the next two days
+              future_days.first(2).each do |day| 
             %>
-            <% future_days.each do |day| %>
               <div class="forecast-card border border-gray-300 bg-white p-3">
                 <div class="text-center">
                   <div class="text-blue-700 font-semibold text-sm"><%= day[:date].strftime('%a') %></div>
-                  <div class="text-xs text-gray-500"><%= day[:date].strftime('%m/%d') %></div>
+                  <div class="text-xs text-gray-500"><%= day[:date].strftime('%-m/%-d') %></div>
                   
                   <div class="forecast-icon">
-                    <% icon_name = weather_icon_name(day[:condition]) %>
-                    <%= render partial: 'shared/weather_icons', locals: { icon_name: icon_name, size_class: 'w-3 h-3' } %>
+                    <%= render partial: 'shared/weather_api_icon', locals: { 
+                      condition: day[:condition], 
+                      size_class: 'w-10 h-10 mx-auto' 
+                    } %>
                   </div>
                   
                   <div class="text-gray-700 text-sm"><%= format_temp(day[:high_temp], @units) %> / <%= format_temp(day[:low_temp], @units) %></div>
-                  <div class="text-blue-600 text-xs truncate" title="<%= day[:condition].titleize %>"><%= day[:condition].titleize %></div>
+                  <div class="text-blue-600 text-xs truncate"><%= day[:condition].is_a?(Hash) ? day[:condition]['text'] : day[:condition].to_s.titleize %></div>
                 </div>
               </div>
             <% end %>
-          </div>
-        <% end %>
+          <% end %>
+        </div>
       </div>
       
       <!-- Technical details section with toggle functionality -->
-      <div data-controller="toggle" class="mt-6 border-t border-gray-200 bg-white">
-        <!-- Toggle button -->
-        <div class="p-4 flex justify-center">
+      <div data-controller="toggle" class="border-t border-gray-200 bg-white">
+        <!-- Toggle header -->
+        <div class="p-2 text-right">
           <button 
-            data-action="toggle#toggle" 
-            data-toggle-expanded="false"
-            class="text-gray-500 text-xs hover:text-blue-600 flex items-center"
+            data-action="toggle#toggle"
+            class="details-toggle-button"
           >
-            <span class="mr-1">Details</span>
+            <span class="details-text">Details</span>
             <span
               data-toggle-target="icon"
-              class="transform transition-transform duration-200 inline-block text-sm"
+              class="details-icon"
             >▶</span>
           </button>
         </div>
         
-        <!-- Content (hidden by default with inline style) -->
+        <!-- Content (hidden by default) -->
         <div 
           data-toggle-target="content"
-          style="display: none;"
-          class="p-4 bg-gray-50 border-t border-gray-200"
+          class="hidden p-4 bg-gray-50 border-t border-gray-200"
         >
-          <!-- Metadata first, as requested -->
+          <!-- Metadata section -->
           <div class="mb-4">
             <h4 class="text-md font-semibold">Metadata</h4>
             <% 
-              # Calculate cache expiry time in local timezone
+              # Calculate cache expiry time
               cache_expiry = @forecast.queried_at + 30.minutes
-              cache_expiry_local = cache_expiry.utc.advance(seconds: timezone_offset)
               minutes_until_expiry = ((cache_expiry - Time.current) / 60).round
             %>
             <table class="w-full text-xs mt-2">
               <tr>
                 <td class="p-1 border border-gray-300 bg-gray-100">Queried At</td>
                 <td class="p-1 border border-gray-300">
-                  <%= @forecast.queried_at.utc.advance(seconds: timezone_offset).strftime("%Y-%m-%d %H:%M:%S") %> (UTC<%= timezone_string %>)
+                  <%= @forecast.queried_at.strftime("%Y-%m-%d %H:%M:%S") %>
                 </td>
               </tr>
               <tr>
@@ -215,8 +182,7 @@
                 <td class="p-1 border border-gray-300">
                   <%= @forecast.cache_fresh? ? "Fresh" : "Expired" %>
                   <% if @forecast.cache_fresh? %>
-                    - Expires at <%= cache_expiry_local.strftime("%H:%M:%S") %> 
-                    (<%= minutes_until_expiry > 0 ? "#{minutes_until_expiry} minutes remaining" : "expired" %>)
+                    - Expires in <%= minutes_until_expiry > 0 ? "#{minutes_until_expiry} minutes" : "expired" %>
                   <% end %>
                 </td>
               </tr>
@@ -225,60 +191,51 @@
                 <td class="p-1 border border-gray-300"><%= @forecast.display_units %></td>
               </tr>
               <tr>
-                <td class="p-1 border border-gray-300 bg-gray-100">Zip Code</td>
-                <td class="p-1 border border-gray-300"><%= @forecast.zip_code || "N/A" %></td>
-              </tr>
-              <tr>
-                <td class="p-1 border border-gray-300 bg-gray-100">Timezone Offset</td>
-                <td class="p-1 border border-gray-300"><%= timezone_offset %> seconds (UTC<%= timezone_string %>)</td>
+                <td class="p-1 border border-gray-300 bg-gray-100">Location</td>
+                <td class="p-1 border border-gray-300"><%= @forecast.address %></td>
               </tr>
             </table>
           </div>
           
-          <!-- Raw weather data after metadata -->
+          <!-- Raw weather data -->
           <h3 class="text-md font-semibold mb-2">Raw Weather Data</h3>
           <div class="overflow-x-auto">
-            <pre class="text-xs bg-gray-100 p-2 border"><code><%= JSON.pretty_generate(@forecast.forecast_data || {}) %></code></pre>
+            <pre class="text-xs bg-gray-100 p-2 rounded"><code><%= JSON.pretty_generate(@forecast.forecast_data || {}) %></code></pre>
           </div>
         </div>
       </div>
     </div>
   <% end %>
-</div>
-
-<script>
-  function get_forecast_days(forecast_list) {
-    const days = [];
-    const dayMap = new Map();
-    
-    forecast_list.forEach(item => {
-      const date = new Date(item.dt * 1000);
-      const dayKey = date.toISOString().split('T')[0];
-      
-      if (!dayMap.has(dayKey)) {
-        dayMap.set(dayKey, {
-          date: date,
-          high_temp: item.main.temp_max,
-          low_temp: item.main.temp_min,
-          condition: item.weather[0].description,
-          temps: [item.main.temp]
-        });
-      } else {
-        const day = dayMap.get(dayKey);
-        day.high_temp = Math.max(day.high_temp, item.main.temp_max);
-        day.low_temp = Math.min(day.low_temp, item.main.temp_min);
-        day.temps.push(item.main.temp);
-      }
-    });
-    
-    return Array.from(dayMap.values());
-  }
   
+  <!-- Recent searches section -->
+  <% if @recent_forecasts.present? && @recent_forecasts.any? %>
+    <div class="mt-8">
+      <h3 class="text-xl font-semibold mb-4">Recent Searches</h3>
+      <div class="bg-white rounded shadow-md p-4">
+        <div class="grid gap-2">
+          <% @recent_forecasts.each do |forecast| %>
+            <div class="p-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
+              <%= link_to forecast.address, 
+                  search_forecasts_path(address: forecast.address), 
+                  class: "text-blue-500 hover:text-blue-700" %>
+              <span class="text-xs text-gray-500">
+                <%= time_ago_in_words(forecast.updated_at) %> ago
+              </span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+  
+  <!-- JavaScript for format_temp in the browser -->
+  <script>
   function format_temp(temp, units) {
     if (units === 'imperial') {
-      return Math.round((temp * 9/5) + 32) + '°F';
+      return `${Math.round(temp)}°F`;
     } else {
-      return Math.round(temp) + '°C';
+      return `${Math.round(temp)}°C`;
     }
   }
-</script>
+  </script>
+</div>

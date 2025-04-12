@@ -1,0 +1,71 @@
+/* Forecast display styles */
+
+/* Override any Tailwind or other framework styles to ensure horizontal layout */
+.forecast-cards {
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.forecast-card {
+  flex: 1 1 0 !important;
+  width: calc(33.333% - 8px) !important;
+  max-width: calc(33.333% - 8px) !important;
+  margin: 0 4px !important;
+  padding: 8px !important;
+  box-sizing: border-box !important;
+}
+
+/* Control image sizing within forecast icons */
+.forecast-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 50px !important; 
+  margin: 4px auto !important;
+}
+
+.forecast-icon img {
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 40px !important;
+  object-fit: contain !important;
+}
+
+/* Ensure readable text size */
+.forecast-card .text-xs {
+  font-size: 0.7rem !important;
+}
+
+.forecast-card .text-sm {
+  font-size: 0.8rem !important;
+}
+
+/* Details toggle button styling */
+.details-toggle-button {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  color: #6b7280;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.details-toggle-button:hover {
+  background-color: #f3f4f6;
+  color: #2563eb;
+}
+
+.details-toggle-button .details-text {
+  margin-right: 0.5rem;
+}
+
+.details-toggle-button .details-icon {
+  transform: rotate(0);
+  transition: transform 0.2s;
+  display: inline-block;
+}

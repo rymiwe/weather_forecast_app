@@ -74,6 +74,29 @@ module WeatherIconHelper
     }
   end
   
+  # Gets the icon URL directly from WeatherAPI.com response if available
+  # @param condition [Hash, String] Weather condition object from WeatherAPI or string description
+  # @return [String, nil] URL to the icon or nil if not available
+  def weather_api_icon_url(condition)
+    # If condition is a hash with the WeatherAPI.com structure
+    if condition.is_a?(Hash) && condition['icon'].present?
+      # Ensure URL uses HTTPS
+      icon_url = condition['icon'].to_s
+      icon_url = "https:#{icon_url}" if icon_url.start_with?('//')
+      return icon_url
+    end
+    
+    # For forecast data structure where condition might be nested
+    if condition.is_a?(Hash) && condition.dig('condition', 'icon').present?
+      icon_url = condition.dig('condition', 'icon').to_s
+      icon_url = "https:#{icon_url}" if icon_url.start_with?('//')
+      return icon_url
+    end
+    
+    # Return nil if no icon URL is found
+    nil
+  end
+  
   # Determines if a day should have a highlight class
   # @param date [Date] The date to check
   # @return [String] CSS class for the day
