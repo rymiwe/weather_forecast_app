@@ -66,12 +66,7 @@ class WeatherApiClient < ApiClientBase
       Rails.logger.info "WeatherApiClient: Cache miss, fetching from API for #{normalized_address}"
       
       # Make a single API call to get everything we need
-      response = get("forecast.json", params: {
-        q: address,
-        days: 3, # WeatherAPI.com free plan allows up to 3 days
-        aqi: 'yes', # Include air quality data
-        key: @api_key # WeatherAPI.com uses 'key' parameter, not 'appid'
-      })
+      response = real_get_weather(address)
       
       Rails.logger.info "WeatherApiClient: API response: #{response ? 'Success' : 'Nil'}"
       
@@ -82,6 +77,46 @@ class WeatherApiClient < ApiClientBase
       
       # Transform the response to match our app's expected structure
       transform_response(response)
+    end
+  end
+  
+  # Create a sample forecast with mock data
+  def real_get_weather(address)
+    Rails.logger.info "WeatherApiClient#real_get_weather: Starting API request for #{address}"
+    
+    # Build the API URL
+    url = URI("#{@base_url}/forecast.json")
+    params = {
+      q: address,
+      days: 3, # WeatherAPI.com free plan allows up to 3 days
+      aqi: 'yes', # Include air quality data
+      key: @api_key # WeatherAPI.com uses 'key' parameter, not 'appid'
+    }
+    
+    url.query = URI.encode_www_form(params)
+    
+    begin
+      Rails.logger.info "WeatherApiClient: Making request to #{url.host} for #{address}"
+      
+      https = Net::HTTP.new(url.host, url.port)
+      https.use_ssl = true
+      
+      request = Net::HTTP::Get.new(url)
+      request["User-Agent"] = "WeatherForecastApp/1.0"
+      
+      response = https.request(request)
+      
+      if response.is_a?(Net::HTTPSuccess)
+        Rails.logger.info "WeatherApiClient: Successful API response for #{address}"
+        return JSON.parse(response.body)
+      else
+        Rails.logger.error "WeatherApiClient: API error: #{response.code} - #{response.body}"
+        return nil
+      end
+    rescue StandardError => e
+      Rails.logger.error "WeatherApiClient Error: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n") if Rails.env.development?
+      nil
     end
   end
   
