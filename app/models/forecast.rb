@@ -167,7 +167,8 @@ class Forecast < ApplicationRecord
   # @param address [String] Address to normalize
   # @return [String] Normalized address
   def self.normalize_address(address)
-    address.to_s.strip.downcase.gsub(/\s+/, '_')
+    # Remove commas, extra spaces, and convert to lowercase for consistent cache keys
+    address.to_s.strip.downcase.gsub(/,/, '').gsub(/\s+/, ' ')
   end
   
   # Get the cache duration
