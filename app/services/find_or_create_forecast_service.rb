@@ -89,7 +89,7 @@ class FindOrCreateForecastService
     end
     
     # Create a new forecast with the data from the mock client
-    Forecast.create_from_api_response(@address, api_result)
+    Forecast.create_from_api_response(processed_address, api_result)
   end
   
   # Create forecast with real client
@@ -109,8 +109,8 @@ class FindOrCreateForecastService
       end
       
       # Create a new forecast with the data from the API
-      # Still store the original address the user entered
-      Forecast.create_from_api_response(@address, api_result)
+      # Store the processed address version for consistent caching
+      Forecast.create_from_api_response(processed_address, api_result)
     rescue StandardError => e
       Rails.logger.error "FindOrCreateForecastService: Error creating forecast: #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
