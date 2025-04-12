@@ -9,7 +9,7 @@ require_relative 'api_client_base'
 class WeatherApiClient < ApiClientBase
   include Singleton
   
-  API_BASE_URL = 'https://api.weatherapi.com/v1'.freeze
+  API_BASE_URL = 'https://api.weatherapi.com'.freeze
   
   # Initialize with the API key from environment
   def initialize(api_key = ENV['WEATHERAPI_KEY'])
@@ -84,8 +84,8 @@ class WeatherApiClient < ApiClientBase
   def real_get_weather(address)
     Rails.logger.info "WeatherApiClient#real_get_weather: Starting API request for #{address}"
     
-    # Build the API URL
-    url = URI("#{@base_url}/forecast.json")
+    # Build the API URL - use the proper v1 path 
+    url = URI("#{@base_url}/v1/forecast.json")
     params = {
       q: address,
       days: 3, # WeatherAPI.com free plan allows up to 3 days
