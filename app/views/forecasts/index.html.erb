@@ -14,7 +14,7 @@
         # Create time with proper timezone
         local_time = timezone.present? ? Time.current.in_time_zone(timezone) : Time.current
       %>
-      <div class="text-3xl font-bold">
+      <div class="text-3xl font-medium text-gray-700">
         <%= @forecast.forecast_data&.dig('location', 'name') || @forecast.address %>
       </div>
       <div class="text-sm text-gray-600">
