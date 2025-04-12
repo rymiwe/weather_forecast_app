@@ -1,6 +1,36 @@
 # frozen_string_literal: true
 
 # Forecast model for storing weather data
+# == Schema Information
+#
+# Table name: forecasts
+#
+#  id                 :integer          not null, primary key
+#  address            :string           not null
+#  normalized_address :string           indexed
+#  zip_code           :string           indexed
+#  current_temp       :float            not null
+#  high_temp          :float            not null
+#  low_temp           :float            not null
+#  conditions         :string
+#  extended_forecast  :text
+#  queried_at         :datetime         not null
+#  created_at         :datetime         not null
+#  updated_at         :datetime         not null
+#
+# Indexes
+#
+#  index_forecasts_on_normalized_address  (normalized_address)
+#  index_forecasts_on_zip_code            (zip_code)
+#
+# Cache Keys
+#
+# The following attributes are used as cache keys:
+#  - normalized_address: Normalized version of the search query (primary cache key)
+#  - zip_code: Extracted from address if available (secondary cache key)
+#
+# Cache TTL: Controlled by ENV['FORECAST_CACHE_TTL'] (defaults to 30 minutes)
+#
 class Forecast < ApplicationRecord
   validates :address, presence: true
   validates :current_temp, :high_temp, :low_temp, presence: true, numericality: true
