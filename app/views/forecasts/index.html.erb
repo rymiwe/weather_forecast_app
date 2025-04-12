@@ -143,43 +143,60 @@
             </div>
           </div>
           
-          <!-- Extended forecast -->
-          <% if @forecast.daily_forecasts.present? %>
-            <% use_imperial = @forecast.should_use_imperial? %>
-            <% 
-              # Get all forecast days
-              days = get_forecast_days(@forecast.daily_forecasts, timezone&.name, use_imperial)
+          <% 
+            # Get all forecast days
+            all_days = get_forecast_days(@forecast.daily_forecasts, timezone&.name, @forecast.should_use_imperial?)
+            
+            # We'll show at most 2 forecast cards in the index view
+            # First card is always Today, second is the next day
+            today = all_days.first
+            tomorrow = all_days.length > 1 ? all_days[1] : nil
+            
+            # Debugging log
+            Rails.logger.debug "All forecast days: #{all_days.map { |d| "#{d[:date].strftime('%a %-m/%-d')}" }.join(', ')}"
+          %>
+          <!-- Today forecast card -->
+          <div class="forecast-card">
+            <div class="text-center">
+              <div class="text-blue-700 font-semibold text-sm">Today</div>
+              <div class="text-xs text-gray-500"><%= today[:date].strftime('%-m/%-d') %></div>
               
-              # Debugging: Log forecast days for troubleshooting
-              Rails.logger.debug "Forecast days: #{days.map { |d| "#{d[:date].strftime('%a %-m/%-d')}" }.join(', ')}"
-              
-              # Take the next two days
-              future_days = days.first(2)
-              future_days.each_with_index do |day, index| 
-            %>
-              <div class="forecast-card">
-                <div class="text-center">
-                  <div class="text-blue-700 font-semibold text-sm">
-                    <% if index == 0 %>
-                      Today
-                    <% else %>
-                      <%= day[:date].strftime('%a') %>
-                    <% end %>
-                  </div>
-                  <div class="text-xs text-gray-500"><%= day[:date].strftime('%-m/%-d') %></div>
-                  
-                  <div class="forecast-icon">
-                    <%= render partial: 'shared/weather_api_icon', locals: { 
-                      condition: day[:condition], 
-                      size_class: 'w-10 h-10 mx-auto' 
-                    } %>
-                  </div>
-                  
-                  <div class="high-low-temp"><%= format_temp(day[:high_temp], @units) %> / <%= format_temp(day[:low_temp], @units) %></div>
-                  <div class="condition-text"><%= day[:condition].is_a?(Hash) ? day[:condition]['text'] : day[:condition].to_s.titleize %></div>
-                </div>
+              <div class="forecast-icon">
+                <%= render partial: 'shared/weather_api_icon', locals: { 
+                  condition: today[:condition], 
+                  size_class: 'w-10 h-10 mx-auto' 
+                } %>
               </div>
-            <% end %>
+              
+              <div class="text-gray-700 text-xs">
+                <%= format_temp(today[:high_temp], @forecast.should_use_imperial? ? 'imperial' : 'metric') %> / 
+                <%= format_temp(today[:low_temp], @forecast.should_use_imperial? ? 'imperial' : 'metric') %>
+              </div>
+              <div class="text-blue-600 text-xs truncate"><%= format_conditions(today[:condition]['text']) %></div>
+            </div>
+          </div>
+          
+          <% if tomorrow.present? %>
+            <!-- Tomorrow forecast card -->
+            <div class="forecast-card">
+              <div class="text-center">
+                <div class="text-blue-700 font-semibold text-sm"><%= tomorrow[:date].strftime('%a') %></div>
+                <div class="text-xs text-gray-500"><%= tomorrow[:date].strftime('%-m/%-d') %></div>
+                
+                <div class="forecast-icon">
+                  <%= render partial: 'shared/weather_api_icon', locals: { 
+                    condition: tomorrow[:condition], 
+                    size_class: 'w-10 h-10 mx-auto' 
+                  } %>
+                </div>
+                
+                <div class="text-gray-700 text-xs">
+                  <%= format_temp(tomorrow[:high_temp], @forecast.should_use_imperial? ? 'imperial' : 'metric') %> / 
+                  <%= format_temp(tomorrow[:low_temp], @forecast.should_use_imperial? ? 'imperial' : 'metric') %>
+                </div>
+                <div class="text-blue-600 text-xs truncate"><%= format_conditions(tomorrow[:condition]['text']) %></div>
+              </div>
+            </div>
           <% end %>
         </div>
       </div>

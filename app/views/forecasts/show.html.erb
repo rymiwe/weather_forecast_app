@@ -72,23 +72,42 @@
         <% daily_forecasts = @forecast.daily_forecasts %>
         <% if daily_forecasts.present? %>
           <% 
-             # Get all days
-             days = get_forecast_days(daily_forecasts)
+             # Get all days from the forecast
+             all_days = get_forecast_days(daily_forecasts)
              
              # Debugging log
-             Rails.logger.debug "Forecast days: #{days.map { |d| "#{d[:date].strftime('%a %-m/%-d')}" }.join(', ')}"
+             Rails.logger.debug "All forecast days: #{all_days.map { |d| "#{d[:date].strftime('%a %-m/%-d')}" }.join(', ')}"
+             
+             # For the first card in the forecast row, we will show the current day again as "Today"
+             # For all subsequent cards, we show the future days
+             today = all_days.first
           %>
           <div class="grid grid-cols-5 gap-2">
-            <% days.first(5).each_with_index do |day, index| %>
+            <!-- First card: Today -->
+            <div class="border border-blue-200 rounded-lg bg-white p-2">
+              <div class="text-center">
+                <div class="text-blue-700 font-semibold text-sm">Today</div>
+                <div class="text-xs text-gray-500"><%= today[:date].strftime('%-m/%-d') %></div>
+                
+                <div class="flex justify-center my-1">
+                  <% day_condition = today[:condition].is_a?(Hash) ? today[:condition] : 
+                                    { 'text' => today[:condition] } %>
+                  <%= render partial: 'shared/weather_api_icon', locals: { 
+                    condition: day_condition, 
+                    size_class: 'w-10 h-10 mx-auto' 
+                  } %>
+                </div>
+                
+                <div class="text-gray-700 text-xs"><%= format_temp(today[:high_temp], @units) %> / <%= format_temp(today[:low_temp], @units) %></div>
+                <div class="text-blue-600 text-xs truncate"><%= format_conditions(day_condition['text']) %></div>
+              </div>
+            </div>
+            
+            <!-- Remaining cards: Future days -->
+            <% all_days.drop(1).first(4).each do |day| %>
               <div class="border border-blue-200 rounded-lg bg-white p-2">
                 <div class="text-center">
-                  <div class="text-blue-700 font-semibold text-sm">
-                    <% if index == 0 %>
-                      Today
-                    <% else %>
-                      <%= day[:date].strftime('%a') %>
-                    <% end %>
-                  </div>
+                  <div class="text-blue-700 font-semibold text-sm"><%= day[:date].strftime('%a') %></div>
                   <div class="text-xs text-gray-500"><%= day[:date].strftime('%-m/%-d') %></div>
                   
                   <div class="flex justify-center my-1">
@@ -101,7 +120,7 @@
                   </div>
                   
                   <div class="text-gray-700 text-xs"><%= format_temp(day[:high_temp], @units) %> / <%= format_temp(day[:low_temp], @units) %></div>
-                  <div class="text-blue-600 text-xs truncate" title="<%= day[:condition].titleize %>"><%= day[:condition].titleize %></div>
+                  <div class="text-blue-600 text-xs truncate"><%= format_conditions(day_condition['text']) %></div>
                 </div>
               </div>
             <% end %>
