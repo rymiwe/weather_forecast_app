@@ -13,16 +13,27 @@ module ForecastsHelper
   
   # Process forecast list data into daily forecasts
   # @param forecast_list [Array] List of forecast periods from API
+  # @param timezone [String] Timezone ID from the API
   # @return [Array] Array of daily forecast hashes
-  def get_forecast_days(forecast_list)
+  def get_forecast_days(forecast_list, timezone = nil)
     return [] if forecast_list.blank?
     
     # Handle WeatherAPI.com format (forecastday array)
     if forecast_list.first.is_a?(Hash) && forecast_list.first['date']
       # WeatherAPI.com format - forecast > forecastday > condition
       return forecast_list.map do |day|
+        date = if timezone.present?
+          begin
+            Time.parse(day['date']).in_time_zone(timezone).to_date
+          rescue
+            Date.parse(day['date'])
+          end
+        else
+          Date.parse(day['date'])
+        end
+
         {
-          date: Date.parse(day['date']),
+          date: date,
           high_temp: day.dig('day', 'maxtemp_c'),
           low_temp: day.dig('day', 'mintemp_c'),
           # Pass the complete condition object with icon and text

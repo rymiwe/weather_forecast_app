@@ -47,9 +47,20 @@ class Forecast < ApplicationRecord
   # Check if forecast is for a US location
   # @return [Boolean] true if location is in the US
   def should_use_imperial?
-    # WeatherAPI.com consistently uses "USA" for country code
+    # WeatherAPI.com uses "USA" or "United States of America" for country code
     country = forecast_data&.dig('location', 'country')
-    country == "USA"
+    return true if country == "USA" || country == "United States of America"
+    
+    # Fallback for mock data or older API responses that might use different formats
+    country_code = forecast_data&.dig('location', 'country_code') || 
+                  forecast_data&.dig('sys', 'country')
+    return true if country_code == "US" || country_code == "USA"
+    
+    # Finally check if location contains common US location names
+    us_location = address.to_s.match?(/usa|united states|america|california|florida|new york|texas|chicago|miami/i)
+    return true if us_location
+    
+    false
   end
   
   # Get the timezone for the forecast location

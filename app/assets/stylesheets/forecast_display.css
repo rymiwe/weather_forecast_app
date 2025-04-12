@@ -1,5 +1,47 @@
 /* Forecast display styles */
 
+/* Container styling */
+.app-container {
+  max-width: 768px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding: 2rem 1rem !important;
+}
+
+/* Search form styling */
+.search-container {
+  max-width: 560px !important;
+  margin: 0 auto 2rem auto !important;
+}
+
+.search-form {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.search-input-container {
+  flex: 1 !important;
+  margin-right: 10px !important;
+}
+
+.search-input {
+  width: 100% !important;
+  padding: 0.625rem 1rem !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.375rem !important;
+  font-size: 1rem !important;
+}
+
+.search-button {
+  background-color: #3b82f6 !important;
+  color: white !important;
+  font-weight: 500 !important;
+  padding: 0.625rem 1rem !important;
+  border-radius: 0.375rem !important;
+  border: none !important;
+  white-space: nowrap !important;
+}
+
 /* Override any Tailwind or other framework styles to ensure horizontal layout */
 .forecast-cards {
   display: flex !important;
@@ -118,4 +160,39 @@
   transform: rotate(0);
   transition: transform 0.2s;
   display: inline-block;
+}
+
+/* Details section styling */
+.details-section {
+  border-top: 1px solid #e5e7eb !important;
+}
+
+.details-content {
+  background-color: #f9fafb !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+
+/* Metadata table styling */
+.metadata-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 0.75rem !important;
+}
+
+.metadata-table td {
+  padding: 0.5rem !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.metadata-table .table-header {
+  background-color: #f3f4f6 !important;
+  color: #4b5563 !important;
+  font-weight: 500 !important;
+}
+
+/* Raw data styling */
+.raw-data-container {
+  background-color: #f3f4f6 !important;
+  border-radius: 0.25rem !important;
+  border: 1px solid #e5e7eb !important;
 }

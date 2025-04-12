@@ -1,55 +1,26 @@
 <%# Consolidated Forecast View %>
 <% content_for :title, @forecast ? "Weather for #{@forecast.address}" : "Weather Forecast" %>
 
-<div class="container mx-auto px-4 py-8 max-w-3xl">
+<div class="app-container">
   <h1 class="text-3xl font-bold text-center mb-8">Weather Forecast</h1>
   
-  <!-- Add CSS to ensure proper horizontal layout and icon sizing -->
-  <style>
-    .forecast-icon img {
-      max-width: 100%;
-      height: auto;
-      width: auto;
-      max-height: 100%;
-    }
-    
-    .forecast-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 64px; /* Fixed height for icon container */
-    }
-    
-    /* Always display cards in a row on all screen sizes */
-    @media (max-width: 768px) {
-      .forecast-cards {
-        display: flex !important;
-        flex-direction: row !important;
-      }
-      
-      .forecast-card {
-        flex: 1 1 0 !important;
-        min-width: 0 !important; /* Allow cards to shrink */
-      }
-    }
-  </style>
-  
-  <div class="mb-8">
-    <%= form_with url: search_forecasts_path, method: :get, data: { turbo: false }, class: "flex flex-wrap gap-2" do |form| %>
-      <div class="flex-grow">
+  <!-- Search form -->
+  <div class="search-container">
+    <%= form_with url: search_forecasts_path, method: :get, data: { turbo: false }, class: "search-form" do |form| %>
+      <div class="search-input-container">
         <%= form.text_field :address, 
             value: @search_query, 
-            class: "w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500", 
+            class: "search-input", 
             placeholder: "Enter a location (city, zip code, or address)" %>
       </div>
       <%= form.submit "Get Forecast", 
           name: "button", 
-          class: "bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" %>
+          class: "search-button" %>
     <% end %>
   </div>
 
   <% if @forecast %>
-    <div class="forecast-container bg-white shadow-lg border border-gray-200 overflow-hidden mb-6">
+    <div class="forecast-container">
       <div class="p-4 bg-white">
         <h2 class="text-2xl font-bold mb-4">
           <% if @forecast.present? %>
@@ -76,14 +47,15 @@
         </h2>
         <% 
           # Get timezone offset from API if available
-          timezone_offset = 0
+          timezone = nil
           if @forecast.forecast_data.present?
-            timezone_offset = @forecast.forecast_data.dig('location', 'tz_id') || 0
+            timezone_id = @forecast.forecast_data.dig('location', 'tz_id')
+            timezone = ActiveSupport::TimeZone[timezone_id] if timezone_id.present?
           end
           # Create time with proper timezone
-          local_time = Time.current
+          local_time = timezone.present? ? Time.current.in_time_zone(timezone) : Time.current
         %>
-        <p class="text-sm text-gray-600"><%= local_time.strftime("%A, %B %d, %Y at %I:%M %p") %></p>
+        <p class="text-sm text-gray-600"><%= local_time.strftime("%A, %B %d, %Y at %I:%M %p %Z") %></p>
       </div>
       
       <!-- Weather data display section -->
@@ -104,7 +76,7 @@
                 } %>
               </div>
               
-              <div class="current-temp"><%= @forecast.current_temp_display %></div>
+              <div class="current-temp"><%= @forecast.current_temp_display %> now</div>
               <div class="high-low-temp"><%= @forecast.high_low_display %></div>
               <div class="condition-text"><%= @forecast.conditions.titleize %></div>
             </div>
@@ -112,9 +84,10 @@
           
           <!-- Extended forecast -->
           <% if @forecast.daily_forecasts.present? %>
-            <% days = get_forecast_days(@forecast.daily_forecasts) %>
+            <% days = get_forecast_days(@forecast.daily_forecasts, timezone&.name) %>
             <% 
-              today = Date.current
+              # Set the current date based on the location's timezone
+              today = local_time.to_date
               # Filter out today from the forecast days to prevent duplication
               future_days = days.reject { |day| day[:date].to_date == today }
               # Take the next two days
@@ -142,7 +115,7 @@
       </div>
       
       <!-- Technical details section with toggle functionality -->
-      <div data-controller="toggle" class="border-t border-gray-200 bg-white">
+      <div data-controller="toggle" class="details-section">
         <!-- Toggle header -->
         <div class="p-2 text-right">
           <button 
@@ -160,7 +133,7 @@
         <!-- Content (hidden by default) -->
         <div 
           data-toggle-target="content"
-          class="hidden p-4 bg-gray-50 border-t border-gray-200"
+          class="hidden p-4 details-content"
         >
           <!-- Metadata section -->
           <div class="mb-4">
@@ -169,17 +142,20 @@
               # Calculate cache expiry time
               cache_expiry = @forecast.queried_at + 30.minutes
               minutes_until_expiry = ((cache_expiry - Time.current) / 60).round
+              
+              # Convert queried_at to the location's timezone
+              queried_at_local = timezone.present? ? @forecast.queried_at.in_time_zone(timezone) : @forecast.queried_at
             %>
-            <table class="w-full text-xs mt-2">
+            <table class="metadata-table mt-2">
               <tr>
-                <td class="p-1 border border-gray-300 bg-gray-100">Queried At</td>
-                <td class="p-1 border border-gray-300">
-                  <%= @forecast.queried_at.strftime("%Y-%m-%d %H:%M:%S") %>
+                <td class="table-header">Queried At</td>
+                <td>
+                  <%= queried_at_local.strftime("%Y-%m-%d %I:%M %p %Z") %>
                 </td>
               </tr>
               <tr>
-                <td class="p-1 border border-gray-300 bg-gray-100">Cache Status</td>
-                <td class="p-1 border border-gray-300">
+                <td class="table-header">Cache Status</td>
+                <td>
                   <%= @forecast.cache_fresh? ? "Fresh" : "Expired" %>
                   <% if @forecast.cache_fresh? %>
                     - Expires in <%= minutes_until_expiry > 0 ? "#{minutes_until_expiry} minutes" : "expired" %>
@@ -187,12 +163,12 @@
                 </td>
               </tr>
               <tr>
-                <td class="p-1 border border-gray-300 bg-gray-100">Display Units</td>
-                <td class="p-1 border border-gray-300"><%= @forecast.display_units %></td>
+                <td class="table-header">Display Units</td>
+                <td><%= @forecast.display_units %></td>
               </tr>
               <tr>
-                <td class="p-1 border border-gray-300 bg-gray-100">Location</td>
-                <td class="p-1 border border-gray-300"><%= @forecast.address %></td>
+                <td class="table-header">Query</td>
+                <td><%= @forecast.address %></td>
               </tr>
             </table>
           </div>
@@ -200,7 +176,7 @@
           <!-- Raw weather data -->
           <h3 class="text-md font-semibold mb-2">Raw Weather Data</h3>
           <div class="overflow-x-auto">
-            <pre class="text-xs bg-gray-100 p-2 rounded"><code><%= JSON.pretty_generate(@forecast.forecast_data || {}) %></code></pre>
+            <pre class="raw-data-container p-2"><code><%= JSON.pretty_generate(@forecast.forecast_data || {}) %></code></pre>
           </div>
         </div>
       </div>
