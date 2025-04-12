@@ -109,8 +109,8 @@
         <div class="forecast-cards">
           <% if @forecast.daily_forecasts.present? %>
             <% 
-              # Show exactly 2 days from the API response (Today and tomorrow)
-              days = get_forecast_days(@forecast.daily_forecasts, timezone&.name, @forecast.should_use_imperial?).first(2)
+              # Show all days from the API response
+              days = get_forecast_days(@forecast.daily_forecasts, timezone&.name, @forecast.should_use_imperial?)
             %>
             <% days.each_with_index do |day, index| %>
               <div class="forecast-card">
