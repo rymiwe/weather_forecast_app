@@ -34,70 +34,43 @@
       <h3 class="text-lg font-semibold mb-4">Weather Forecast</h3>
       
       <div class="flex flex-col space-y-2">
-        <!-- Today's weather card -->
-        <div class="border border-blue-200 rounded-lg bg-white p-3">
-          <div class="text-center">
-            <% 
-              # Get the current date in the location's timezone
-              location_date = local_time.to_date
-              # Get the date from the first forecast day if available
-              first_forecast_date = nil
-              if @forecast.daily_forecasts.present?
-                first_day = get_forecast_days(@forecast.daily_forecasts).first
-                first_forecast_date = first_day[:date].to_date if first_day
-              end
-              
-              # Force display as "Today" for the first card
-              day_display = "Today"
-            %>
-            <div class="text-blue-700 font-semibold"><%= day_display %></div>
-            <div class="text-xs text-gray-500"><%= local_time.strftime('%-m/%-d') %></div>
-            
-            <div class="my-1">
-              <% current_condition = @forecast.forecast_data&.dig('current_weather', 'condition') || 
-                                     @forecast.forecast_data&.dig('current', 'condition') %>
-              <%= render partial: 'shared/weather_api_icon', locals: { 
-                condition: current_condition || @forecast.conditions, 
-                size_class: 'w-20 h-20 mx-auto' 
-              } %>
-            </div>
-            
-            <div class="font-bold text-lg">Now: <%= @forecast.current_temp_display %></div>
-            <div class="text-gray-700 text-sm"><%= @forecast.high_low_display %></div>
-            <div class="text-blue-600 text-sm mt-1"><%= @forecast.conditions.titleize %></div>
-          </div>
-        </div>
-        
-        <!-- Extended forecast days in a horizontal row -->
         <% daily_forecasts = @forecast.daily_forecasts %>
         <% if daily_forecasts.present? %>
           <% 
-             # Just use the forecast data directly from the API - max 3 days
-             days = get_forecast_days(daily_forecasts).first(3)
+             # Get all days directly from the API response without any filtering
+             days = get_forecast_days(daily_forecasts)
+             
+             # For debugging
+             Rails.logger.debug "API RETURNED #{days.length} DAYS: #{days.map { |d| d[:date].strftime('%a %-m/%-d') }.join(', ')}"
           %>
-          <div class="grid grid-cols-3 gap-2">
+          
+          <div class="grid grid-cols-3 gap-2 mt-2">
             <% days.each_with_index do |day, index| %>
-              <div class="border border-blue-200 rounded-lg bg-white p-2">
+              <div class="border border-blue-200 rounded-lg bg-white p-3">
                 <div class="text-center">
                   <div class="text-blue-700 font-semibold text-sm">
                     <%= index == 0 ? "Today" : day[:date].strftime('%a') %>
                   </div>
                   <div class="text-xs text-gray-500"><%= day[:date].strftime('%-m/%-d') %></div>
                   
-                  <div class="flex justify-center my-1">
+                  <div class="flex justify-center my-2">
                     <% day_condition = day[:condition].is_a?(Hash) ? day[:condition] : 
                                        { 'text' => day[:condition] } %>
                     <%= render partial: 'shared/weather_api_icon', locals: { 
                       condition: day_condition, 
-                      size_class: 'w-10 h-10 mx-auto' 
+                      size_class: 'w-14 h-14 mx-auto' 
                     } %>
                   </div>
                   
-                  <div class="text-gray-700 text-xs"><%= format_temp(day[:high_temp], @units) %> / <%= format_temp(day[:low_temp], @units) %></div>
-                  <div class="text-blue-600 text-xs truncate"><%= format_conditions(day_condition['text']) %></div>
+                  <div class="text-gray-700 text-sm"><%= format_temp(day[:high_temp], @units) %> / <%= format_temp(day[:low_temp], @units) %></div>
+                  <div class="text-blue-600 text-sm mt-1"><%= format_conditions(day_condition['text']) %></div>
                 </div>
               </div>
             <% end %>
+          </div>
+        <% else %>
+          <div class="bg-gray-100 p-4 text-center rounded-lg">
+            <p class="text-gray-500">No forecast data available</p>
           </div>
         <% end %>
       </div>

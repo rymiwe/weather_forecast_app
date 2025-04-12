@@ -56,11 +56,11 @@ class MockWeatherApiClient
   end
   
   def mock_forecast(address)
-    # Create deterministic forecast for next 5 days
+    # Create deterministic forecast for next 3 days
     base_temp = address.to_s.sum % 15 + 15
     
     {
-      'forecastday' => (0..4).map do |day_offset|
+      'forecastday' => (0..2).map do |day_offset|
         date = Date.today + day_offset
         {
           'date' => date.to_s,
