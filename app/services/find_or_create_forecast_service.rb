@@ -65,7 +65,13 @@ class FindOrCreateForecastService
   # Create a new forecast
   # @return [Forecast, nil] Created forecast or nil if failed
   def create_new_forecast
-    # Determine whether to use mock client based on environment setting
+    # Never use mock client in production regardless of environment settings
+    if Rails.env.production?
+      Rails.logger.info "FindOrCreateForecastService: In production, always using real client for address: #{@address}"
+      return create_with_real_client
+    end
+    
+    # In development/test, check environment setting
     use_mock = ENV.fetch('USE_MOCK_WEATHER_CLIENT', 'true').downcase == 'true'
     
     if use_mock
