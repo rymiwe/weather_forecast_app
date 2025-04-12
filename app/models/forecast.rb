@@ -352,7 +352,7 @@ class Forecast < ApplicationRecord
   # Check if the forecast is from cache and cache is still fresh
   # @return [Boolean] True if from cache and fresh
   def cache_fresh?
-    Time.now - queried_at < self.class.cache_duration && Time.now - queried_at > 1.minute
+    Time.now - queried_at < self.class.cache_duration
   end
   
   # Get parsed forecast data
