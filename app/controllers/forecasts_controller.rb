@@ -46,8 +46,12 @@ class ForecastsController < ApplicationController
         return
       end
       
+      # Store the original user query
+      @forecast.user_query = address
+      
       @units = @forecast.display_units
-      # Don't set @search_query to maintain an empty search box after submission
+      # Store the search query for form reuse if needed
+      @search_query = address
       
       # Always render the index template with results
       render :index

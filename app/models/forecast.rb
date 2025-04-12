@@ -41,6 +41,9 @@ class Forecast < ApplicationRecord
   # Virtual attribute to store the preprocessed address used for API calls
   attr_accessor :api_query
   
+  # Virtual attribute to store the exact search string entered by the user
+  attr_accessor :user_query
+  
   # Scopes
   scope :recent, -> { order(created_at: :desc) }
   
