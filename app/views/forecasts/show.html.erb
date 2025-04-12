@@ -47,9 +47,8 @@
                 first_forecast_date = first_day[:date].to_date if first_day
               end
               
-              # Determine if the first forecast day is today in the location's timezone
-              is_today = first_forecast_date == location_date
-              day_display = is_today ? "Today" : local_time.strftime('%a')
+              # Force display as "Today" for the first card
+              day_display = "Today"
             %>
             <div class="text-blue-700 font-semibold"><%= day_display %></div>
             <div class="text-xs text-gray-500"><%= local_time.strftime('%-m/%-d') %></div>
