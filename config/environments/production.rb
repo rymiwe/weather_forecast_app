@@ -65,10 +65,9 @@ Rails.application.configure do
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
   # Use a different cache store in production.
-  config.cache_store = :redis_cache_store, {
-    url: ENV.fetch("REDIS_URL", "redis://localhost:6379/1"),
+  config.cache_store = :memory_store, {
     expires_in: 30.minutes,
-    namespace: "weather_forecast_cache"
+    size: 64.megabytes
   }
 
   # Use a real queuing backend for Active Job (and separate queues per environment).
