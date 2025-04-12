@@ -12,31 +12,17 @@ class WeatherApiClient < ApiClientBase
   API_BASE_URL = 'https://api.weatherapi.com'.freeze
   
   # Initialize with the API key from environment
-  def initialize(api_key = ENV['WEATHERAPI_KEY'])
-    super(api_key: api_key, base_url: API_BASE_URL)
-    Rails.logger.info "WeatherApiClient: Initializing with API key: #{@api_key.present? ? 'Present' : 'Missing'}"
+  def initialize
+    @api_key = ENV['WEATHERAPI_KEY']
     
-    if @api_key.blank?
-      Rails.logger.warn "WeatherApiClient: API key is missing! ENV['WEATHERAPI_KEY'] is not set properly. Using fallback."
-      # In production, we'll try to get the key directly from the environment again
-      # This helps with certain Heroku configurations
-      if Rails.env.production?
-        @api_key = ENV.fetch('WEATHERAPI_KEY', nil)
-        Rails.logger.info "WeatherApiClient: Retried API key in production: #{@api_key.present? ? 'Present' : 'Missing'}"
-      end
-      
-      # In production, we should be strict about requiring an API key
-      if Rails.env.production? && @api_key.blank?
-        Rails.logger.error "WeatherApiClient: No API key in production environment"
-        @use_mock = false
-      else
-        # In development/test, we can fall back to mock data
-        Rails.logger.info "WeatherApiClient: Using mock weather data for development/test"
-        @use_mock = true
-      end
-    else
-      @use_mock = false
-    end
+    # Check both Rails configuration and environment variable for maximum compatibility
+    @use_mock = Rails.configuration.x.weather.use_mock_client || ENV['USE_MOCK_WEATHER_CLIENT'] == 'true'
+    
+    @weather_cache_ttl = Rails.configuration.x.weather.cache_ttl
+    
+    Rails.logger.debug "WeatherApiClient initialized with mock: #{@use_mock}, cache TTL: #{@weather_cache_ttl}, API key present: #{@api_key.present?}"
+    
+    super(api_key: @api_key, base_url: API_BASE_URL)
   end
   
   # Get weather data for a given address in a single API call
@@ -62,7 +48,7 @@ class WeatherApiClient < ApiClientBase
     cache_key = "weather:#{normalized_address}"
     
     # Try to fetch from cache first
-    Rails.cache.fetch(cache_key, expires_in: weather_cache_ttl) do
+    Rails.cache.fetch(cache_key, expires_in: @weather_cache_ttl) do
       Rails.logger.info "WeatherApiClient: Cache miss, fetching from API for #{normalized_address}"
       
       # Make a single API call to get everything we need
@@ -226,6 +212,6 @@ class WeatherApiClient < ApiClientBase
   # Get weather cache TTL from configuration
   # @return [Integer] Cache TTL in seconds
   def weather_cache_ttl
-    Rails.configuration.x.weather.cache_ttl || 30.minutes
+    @weather_cache_ttl
   end
 end

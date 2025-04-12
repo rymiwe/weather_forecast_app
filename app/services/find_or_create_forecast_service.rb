@@ -58,8 +58,8 @@ class FindOrCreateForecastService
       return create_with_real_client
     end
     
-    # In development/test, check environment setting
-    use_mock = ENV.fetch('USE_MOCK_WEATHER_CLIENT', 'true').downcase == 'true'
+    # In development/test, check Rails configuration
+    use_mock = Rails.configuration.x.weather.use_mock_client
     
     if use_mock
       Rails.logger.info "FindOrCreateForecastService: Using mock client for address: #{@address}"

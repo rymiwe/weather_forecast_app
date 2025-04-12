@@ -110,7 +110,24 @@
           <!-- Current weather card -->
           <div class="forecast-card">
             <div class="text-center">
-              <div class="text-blue-700 font-semibold text-sm">Today</div>
+              <% 
+                # Get the current date in the location's timezone
+                location_date = local_time.to_date
+                # Get the date from the first forecast day if available
+                first_forecast_date = nil
+                if @forecast.daily_forecasts.present?
+                  first_day = get_forecast_days(@forecast.daily_forecasts, timezone&.name, @forecast.should_use_imperial?).first
+                  first_forecast_date = first_day[:date].to_date if first_day
+                end
+                
+                # Determine if the first forecast day is today in the location's timezone
+                is_today = first_forecast_date == location_date
+                day_label = is_today ? "Today" : local_time.strftime('%a')
+                
+                # If it's not today, also show the date
+                day_display = is_today ? "Today" : local_time.strftime('%a')
+              %>
+              <div class="text-blue-700 font-semibold text-sm"><%= day_display %></div>
               <% if local_time %>
                 <div class="text-xs text-gray-500"><%= local_time.strftime('%-m/%-d') %></div>
               <% end %>
