@@ -138,6 +138,18 @@
               <td class="p-1 border border-gray-300"><%= @forecast.zip_code || "N/A" %></td>
             </tr>
             <tr>
+              <td class="p-1 border border-gray-300 bg-gray-100">User Query</td>
+              <td class="p-1 border border-gray-300"><%= @forecast.address %></td>
+            </tr>
+            <tr>
+              <td class="p-1 border border-gray-300 bg-gray-100">API Query</td>
+              <td class="p-1 border border-gray-300"><%= @forecast.api_query || @forecast.address %></td>
+            </tr>
+            <tr>
+              <td class="p-1 border border-gray-300 bg-gray-100">Cache Key</td>
+              <td class="p-1 border border-gray-300"><%= @forecast.normalized_address %></td>
+            </tr>
+            <tr>
               <td class="p-1 border border-gray-300 bg-gray-100">Timezone Offset</td>
               <td class="p-1 border border-gray-300"><%= timezone_offset %> seconds (UTC<%= timezone_string %>)</td>
             </tr>

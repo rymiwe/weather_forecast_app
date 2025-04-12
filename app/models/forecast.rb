@@ -38,6 +38,9 @@ class Forecast < ApplicationRecord
   # Virtual attribute to track whether a forecast was retrieved from cache
   attr_accessor :from_cache
   
+  # Virtual attribute to store the preprocessed address used for API calls
+  attr_accessor :api_query
+  
   # Scopes
   scope :recent, -> { order(created_at: :desc) }
   
@@ -167,8 +170,8 @@ class Forecast < ApplicationRecord
   # @param address [String] Address to normalize
   # @return [String] Normalized address
   def self.normalize_address(address)
-    # Remove commas, extra spaces, and convert to lowercase for consistent cache keys
-    address.to_s.strip.downcase.gsub(/,/, '').gsub(/\s+/, ' ')
+    # Remove commas, extra spaces, convert to lowercase, and replace spaces with underscores
+    address.to_s.strip.downcase.gsub(/,/, '').gsub(/\s+/, ' ').gsub(/\s/, '_')
   end
   
   # Get the cache duration

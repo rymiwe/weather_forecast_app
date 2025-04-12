@@ -188,8 +188,12 @@
                 <td><%= @forecast.display_units %></td>
               </tr>
               <tr>
-                <td class="table-header">Query</td>
+                <td class="table-header">User Query</td>
                 <td><%= @forecast.address %></td>
+              </tr>
+              <tr>
+                <td class="table-header">API Query</td>
+                <td><%= @forecast.api_query || @forecast.address %></td>
               </tr>
               <tr>
                 <td class="table-header">Cache Key</td>
