@@ -19,11 +19,14 @@
   margin: 0 auto 1.5rem;
   display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-input-container {
-  flex: 1 1 300px;
+  flex: 0 1 500px;
+  max-width: 500px;
+  width: 100%;
 }
 
 .search-input {
