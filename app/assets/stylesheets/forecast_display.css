@@ -9,13 +9,38 @@
   padding: 0 !important;
 }
 
+/* Card styling with softer borders and shadows */
 .forecast-card {
   flex: 1 1 0 !important;
   width: calc(33.333% - 8px) !important;
   max-width: calc(33.333% - 8px) !important;
   margin: 0 4px !important;
-  padding: 8px !important;
+  padding: 12px !important;
   box-sizing: border-box !important;
+  border-radius: 0.5rem !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
+  transition: transform 0.2s, box-shadow 0.2s !important;
+}
+
+.forecast-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Weather container styling */
+.weather-data {
+  background-color: #f9fafb !important;
+  border-radius: 0 0 0.5rem 0.5rem !important;
+  padding: 1rem !important;
+}
+
+/* Main container styling */
+.forecast-container {
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  overflow: hidden !important;
+  border: none !important;
 }
 
 /* Control image sizing within forecast icons */
@@ -23,14 +48,14 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  height: 50px !important; 
+  height: 45px !important; 
   margin: 4px auto !important;
 }
 
 .forecast-icon img {
   max-width: 100% !important;
   height: auto !important;
-  max-height: 40px !important;
+  max-height: 35px !important;
   object-fit: contain !important;
 }
 
@@ -41,6 +66,31 @@
 
 .forecast-card .text-sm {
   font-size: 0.8rem !important;
+}
+
+/* Current weather styling */
+.current-weather {
+  color: #1e40af !important;
+}
+
+.current-temp {
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  margin: 0.25rem 0 !important;
+}
+
+.high-low-temp {
+  color: #6b7280 !important;
+  font-size: 0.8rem !important;
+}
+
+.condition-text {
+  color: #3b82f6 !important;
+  font-size: 0.75rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
 }
 
 /* Details toggle button styling */
