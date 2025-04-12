@@ -104,10 +104,9 @@
 
 /* Weather container styling */
 .weather-data {
-  background-color: white !important;
+  background-color: #f9fafb !important;
   border-radius: 0 0 0.5rem 0.5rem !important;
-  overflow: hidden !important;
-  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.03) !important;
+  padding: 1rem !important;
 }
 
 /* Control image sizing within forecast icons */
