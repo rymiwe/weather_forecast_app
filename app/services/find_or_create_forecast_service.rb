@@ -26,9 +26,14 @@ class FindOrCreateForecastService
     Rails.logger.info "FindOrCreateForecastService: Finding or creating forecast for address: #{@address}"
     return nil if @address.blank?
     
-    # Look for an existing forecast by zip code first
-    zip_code = extract_zip_code
-    forecast = Forecast.find_cached(zip_code) if zip_code.present?
+    # First try to find a forecast by normalized address
+    forecast = Forecast.find_cached_by_address(@address)
+    
+    if forecast.nil?
+      # If not found by address, try by zip code
+      zip_code = extract_zip_code
+      forecast = Forecast.find_cached(zip_code) if zip_code.present?
+    end
     
     # If no forecast was found, create a new one
     if forecast.nil?

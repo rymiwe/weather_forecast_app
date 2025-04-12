@@ -116,6 +116,27 @@ class Forecast < ApplicationRecord
       .first
   end
   
+  # Find a forecast by normalized address in cache
+  # @param address [String] Address to find
+  # @return [Forecast, nil] Found forecast or nil
+  def self.find_cached_by_address(address)
+    return nil unless address.present?
+    
+    normalized_address = normalize_address(address)
+    # Look for a forecast in the cache window (30 minutes by default)
+    where(normalized_address: normalized_address)
+      .where('queried_at >= ?', Time.current - cache_duration)
+      .order(queried_at: :desc)
+      .first
+  end
+  
+  # Normalize an address for consistent caching
+  # @param address [String] Address to normalize
+  # @return [String] Normalized address
+  def self.normalize_address(address)
+    address.to_s.strip.downcase.gsub(/\s+/, ' ')
+  end
+  
   # Get the cache duration
   # @return [ActiveSupport::Duration] Cache duration
   def self.cache_duration
@@ -154,39 +175,43 @@ class Forecast < ApplicationRecord
       Rails.logger.info "Forecast.create_from_api_response: Creating forecast for #{address}"
       
       # Extract zip code from address if possible
-      zip_code = address.to_s.match(/\d{5}/)&.to_s
-      
-      # Extract required data from API response - adapt to WeatherAPI structure
-      # WeatherAPI provides temp_c/temp_f directly rather than under "main"
-      current_temp = current["temp_c"] || (current.dig("main", "temp") if current["main"])
-      
-      # For high/low temps, we'll use daily forecast data or fallback to current
-      forecast_data = api_response[:forecast] || api_response["forecast"]
-      if forecast_data && forecast_data["forecastday"] && forecast_data["forecastday"].first
-        today = forecast_data["forecastday"].first
-        high_temp = today.dig("day", "maxtemp_c") 
-        low_temp = today.dig("day", "mintemp_c")
-      elsif current["main"] # Legacy OpenWeatherMap format
-        high_temp = current.dig("main", "temp_max")
-        low_temp = current.dig("main", "temp_min")
-      else
-        # If no forecast data, use current temp with small variations
-        high_temp = current_temp + 2
-        low_temp = current_temp - 2
+      zip_code = nil
+      if address.present?
+        zip_match = address.to_s.match(/\b\d{5}\b/)
+        zip_code = zip_match[0] if zip_match
       end
       
-      # Get weather conditions
-      if current["condition"] 
-        conditions = current["condition"]["text"]
-      elsif current.dig("weather", 0)
-        conditions = current["weather"][0]["description"]
-      else
-        conditions = "Unknown"
-      end
+      # Get normalized address for consistent caching
+      normalized_address = normalize_address(address)
+      
+      # Get current conditions
+      current_temp = 
+        current.dig("main", "temp") || 
+        current["temp_c"] || 
+        current["temp"] || 
+        0
+      
+      high_temp = 
+        current.dig("main", "temp_max") || 
+        api_response.dig("forecast", "forecastday", 0, "day", "maxtemp_c") ||
+        current["maxtemp_c"] || 
+        current_temp + 5
+      
+      low_temp = 
+        current.dig("main", "temp_min") || 
+        api_response.dig("forecast", "forecastday", 0, "day", "mintemp_c") ||
+        current["mintemp_c"] || 
+        current_temp - 5
+      
+      conditions = 
+        current.dig("weather", 0, "description") || 
+        current["condition"]["text"] || 
+        "Unknown"
       
       # Create and return the forecast
       forecast = create(
         address: address,
+        normalized_address: normalized_address,
         zip_code: zip_code,
         current_temp: current_temp,
         high_temp: high_temp,

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_04_10_023612) do
+ActiveRecord::Schema[7.1].define(version: 2025_04_12_031043) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -25,6 +25,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_10_023612) do
     t.datetime "queried_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "normalized_address"
+    t.index ["normalized_address"], name: "index_forecasts_on_normalized_address"
     t.index ["queried_at"], name: "index_forecasts_on_queried_at"
     t.index ["zip_code", "queried_at"], name: "index_forecasts_on_zip_and_time"
     t.index ["zip_code", "queried_at"], name: "index_forecasts_on_zip_code_and_queried_at"
