@@ -17,13 +17,39 @@ class Forecast < ApplicationRecord
   # Format current temperature for display
   # @return [String] Formatted temperature with unit
   def current_temp_display
-    format_temp(current_temp)
+    if should_use_imperial?
+      temp = forecast_data&.dig('current_weather', 'temp_f') || 
+             forecast_data&.dig('current', 'temp_f') || 
+             convert_to_fahrenheit(current_temp)
+      "#{temp.round}°F now"
+    else
+      temp = forecast_data&.dig('current_weather', 'temp_c') || 
+             forecast_data&.dig('current', 'temp_c') || 
+             current_temp
+      "#{temp.round}°C now"
+    end
   end
   
   # Format high/low temperature for display
   # @return [String] Formatted high/low with units
   def high_low_display
-    "#{format_temp(high_temp)} / #{format_temp(low_temp)}"
+    if should_use_imperial?
+      high = forecast_data&.dig('current_weather', 'maxtemp_f') || 
+             forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'maxtemp_f') || 
+             convert_to_fahrenheit(high_temp)
+      low = forecast_data&.dig('current_weather', 'mintemp_f') || 
+            forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'mintemp_f') || 
+            convert_to_fahrenheit(low_temp)
+      "#{high.round}°F / #{low.round}°F"
+    else
+      high = forecast_data&.dig('current_weather', 'maxtemp_c') || 
+             forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'maxtemp_c') || 
+             high_temp
+      low = forecast_data&.dig('current_weather', 'mintemp_c') || 
+            forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'mintemp_c') || 
+            low_temp
+      "#{high.round}°C / #{low.round}°C"
+    end
   end
   
   # Format temperature for display with units
@@ -47,20 +73,9 @@ class Forecast < ApplicationRecord
   # Check if forecast is for a US location
   # @return [Boolean] true if location is in the US
   def should_use_imperial?
-    # WeatherAPI.com uses "USA" or "United States of America" for country code
+    # WeatherAPI.com returns country with "USA" for US locations
     country = forecast_data&.dig('location', 'country')
-    return true if country == "USA" || country == "United States of America"
-    
-    # Fallback for mock data or older API responses that might use different formats
-    country_code = forecast_data&.dig('location', 'country_code') || 
-                  forecast_data&.dig('sys', 'country')
-    return true if country_code == "US" || country_code == "USA"
-    
-    # Finally check if location contains common US location names
-    us_location = address.to_s.match?(/usa|united states|america|california|florida|new york|texas|chicago|miami/i)
-    return true if us_location
-    
-    false
+    country.to_s.include?("USA")
   end
   
   # Get the timezone for the forecast location

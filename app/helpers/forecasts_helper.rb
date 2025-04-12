@@ -78,17 +78,14 @@ module ForecastsHelper
   
   # Format temperature for display
   # @param temp [Float] Temperature value
-  # @param units [String] 'imperial' or 'metric'
-  # @return [String] Formatted temperature with unit
+  # @param units [String] Units to display ('imperial' or 'metric')
+  # @return [String] Formatted temperature with units
   def format_temp(temp, units)
-    # Convert to Fahrenheit for imperial units since API returns Celsius
     if units == 'imperial'
-      converted_temp = (temp * 9.0/5.0) + 32
-      return "#{converted_temp.round}°F"
+      "#{temp.round}°F"
+    else
+      "#{temp.round}°C"
     end
-    
-    # Return Celsius for metric units
-    "#{temp.round}°C"
   end
   
   private
