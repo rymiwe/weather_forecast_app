@@ -17,35 +17,6 @@ class AddressPreprocessorService
     zip_code = processed.match(/\b\d{5}(?:-\d{4})?\b/)&.to_s
     Rails.logger.info "AddressPreprocessorService: Extracted zip_code: '#{zip_code}'"
     
-    # Common cities - used for validating extraction results
-    common_cities = %w(portland seattle san francisco los angeles new york chicago austin houston
-                       miami boston philadelphia dallas atlanta denver phoenix tucson washington)
-    street_types = %w(street st avenue ave road rd boulevard blvd lane ln drive dr court ct place pl 
-                      circle cir way parkway pkwy highway hwy terrace ter)
-    
-    # 1. Special case: Look for known city names with state abbreviation first
-    # This helps with cases like "3824 SE Carlton Street, Portland OR 97202"
-    common_cities.each do |city|
-      # Try to match pattern: any text + city name + state abbreviation
-      US_STATES.each do |abbr, _|
-        city_state_pattern = /\b#{city}\s+#{abbr}\b/i
-        if processed =~ city_state_pattern
-          # Found a known city and state pattern
-          Rails.logger.info "AddressPreprocessorService: Found known city-state pattern: '#{city} #{abbr}'"
-          
-          # Try to extract zip code if it follows the city and state
-          city_state_match = processed.match(city_state_pattern)
-          remaining_text = processed[(city_state_match.end(0))..].strip
-          zip_from_remaining = remaining_text.match(/\b\d{5}(?:-\d{4})?\b/)&.to_s
-          
-          # Use the known city, state, and available zip code
-          result = [city, abbr.upcase, zip_from_remaining || zip_code].compact.join(' ')
-          Rails.logger.info "AddressPreprocessorService: Used known city pattern, result: '#{result}'"
-          return result
-        end
-      end
-    end
-    
     # Simple direct approach - extract everything after a comma if it exists
     if processed.include?(',')
       parts = processed.split(',').map(&:strip)
@@ -96,50 +67,6 @@ class AddressPreprocessorService
               # Just use the first non-numeric word from city_part
               city = city_part.gsub(/^\d+\s+[a-z]+\s+[a-z]+\s+/i, '')
               Rails.logger.info "AddressPreprocessorService: Cleaned city from street details: '#{city}'"
-            end
-          end
-          
-          # Remove any street name patterns from the city
-          if city =~ /\b(street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|place|pl|circle|cir|way|parkway|pkwy|highway|hwy)\b/i
-            # This looks like it still contains street info - try to find real city
-            
-            # First check if we have a common city embedded in the text
-            city_words = city.split(/\s+/)
-            found_common_city = false
-            
-            common_cities.each do |common_city|
-              if city_words.include?(common_city)
-                city = common_city
-                found_common_city = true
-                Rails.logger.info "AddressPreprocessorService: Found common city '#{city}' in street text"
-                break
-              end
-            end
-            
-            # If we didn't find a common city, try pattern matching
-            if !found_common_city
-              if city =~ /\b[a-z]+ (street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|place|pl|circle|cir|way|parkway|pkwy|highway|hwy) ([a-z]+)\b/i
-                # Pattern like "Carlton Street Portland" - extract "Portland"
-                city = $2
-                Rails.logger.info "AddressPreprocessorService: Extracted city after street name: '#{city}'"
-              else
-                # Take the last word hoping it's the city, unless it's a street type
-                last_word = city.split.last
-                if street_types.include?(last_word)
-                  # If last word is a street type, get the word before
-                  words = city.split
-                  if words.size >= 2
-                    city = words[-2]
-                    Rails.logger.info "AddressPreprocessorService: Using word before street type as city: '#{city}'"
-                  else
-                    city = words.first
-                    Rails.logger.info "AddressPreprocessorService: Using first word as city: '#{city}'"
-                  end
-                else
-                  city = last_word
-                  Rails.logger.info "AddressPreprocessorService: Using last word as city: '#{city}'"
-                end
-              end
             end
           end
           
@@ -218,50 +145,6 @@ class AddressPreprocessorService
         end
       end
       
-      # Remove any street name patterns from the city
-      if city =~ /\b(street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|place|pl|circle|cir|way|parkway|pkwy|highway|hwy)\b/i
-        # This looks like it still contains street info - try to find real city
-        
-        # First check if we have a common city embedded in the text
-        city_words = city.split(/\s+/)
-        found_common_city = false
-        
-        common_cities.each do |common_city|
-          if city_words.include?(common_city)
-            city = common_city
-            found_common_city = true
-            Rails.logger.info "AddressPreprocessorService: Found common city '#{city}' in street text"
-            break
-          end
-        end
-        
-        # If we didn't find a common city, try pattern matching
-        if !found_common_city
-          if city =~ /\b[a-z]+ (street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|place|pl|circle|cir|way|parkway|pkwy|highway|hwy) ([a-z]+)\b/i
-            # Pattern like "Carlton Street Portland" - extract "Portland"
-            city = $2
-            Rails.logger.info "AddressPreprocessorService: Extracted city after street name: '#{city}'"
-          else
-            # Take the last word hoping it's the city, unless it's a street type
-            last_word = city.split.last
-            if street_types.include?(last_word)
-              # If last word is a street type, get the word before
-              words = city.split
-              if words.size >= 2
-                city = words[-2]
-                Rails.logger.info "AddressPreprocessorService: Using word before street type as city: '#{city}'"
-              else
-                city = words.first
-                Rails.logger.info "AddressPreprocessorService: Using first word as city: '#{city}'"
-              end
-            else
-              city = last_word
-              Rails.logger.info "AddressPreprocessorService: Using last word as city: '#{city}'"
-            end
-          end
-        end
-      end
-      
       # Try to find zip code after state
       after_state = processed[(state_position + state_match.length)..].strip
       Rails.logger.info "AddressPreprocessorService: Content after state: '#{after_state}'"
@@ -269,6 +152,20 @@ class AddressPreprocessorService
       zip_after_state = after_state.match(/\b\d{5}(?:-\d{4})?\b/)&.to_s
       zip_to_use = zip_after_state || zip_code
       Rails.logger.info "AddressPreprocessorService: Using zip: '#{zip_to_use}'"
+      
+      # Remove any street name patterns from the city
+      if city =~ /\b(street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|place|pl|circle|cir|way|parkway|pkwy|highway|hwy)\b/i
+        # This looks like it still contains street info - try to find real city
+        if city =~ /\b[a-z]+ (street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|place|pl|circle|cir|way|parkway|pkwy|highway|hwy) ([a-z]+)\b/i
+          # Pattern like "Carlton Street Portland" - extract "Portland"
+          city = $2
+          Rails.logger.info "AddressPreprocessorService: Extracted city after street name: '#{city}'"
+        else
+          # Take the last word hoping it's the city
+          city = city.split.last
+          Rails.logger.info "AddressPreprocessorService: Using last word as city: '#{city}'"
+        end
+      end
       
       # Final result with city, state, and zip
       result = [city, state_match, zip_to_use].compact.join(' ')
