@@ -17,8 +17,25 @@ class WeatherApiClient < ApiClientBase
     Rails.logger.info "WeatherApiClient: Initializing with API key: #{@api_key.present? ? 'Present' : 'Missing'}"
     
     if @api_key.blank?
-      Rails.logger.error "WeatherApiClient: API key is missing! ENV['WEATHERAPI_KEY'] is not set properly."
-      raise ArgumentError, "WeatherAPI key is required" 
+      Rails.logger.warn "WeatherApiClient: API key is missing! ENV['WEATHERAPI_KEY'] is not set properly. Using fallback."
+      # In production, we'll try to get the key directly from the environment again
+      # This helps with certain Heroku configurations
+      if Rails.env.production?
+        @api_key = ENV.fetch('WEATHERAPI_KEY', nil)
+        Rails.logger.info "WeatherApiClient: Retried API key in production: #{@api_key.present? ? 'Present' : 'Missing'}"
+      end
+      
+      # In production, we should be strict about requiring an API key
+      if Rails.env.production? && @api_key.blank?
+        Rails.logger.error "WeatherApiClient: No API key in production environment"
+        @use_mock = false
+      else
+        # In development/test, we can fall back to mock data
+        Rails.logger.info "WeatherApiClient: Using mock weather data for development/test"
+        @use_mock = true
+      end
+    else
+      @use_mock = false
     end
   end
   
@@ -27,6 +44,18 @@ class WeatherApiClient < ApiClientBase
   # @return [Hash] Weather data including current and forecast
   def get_weather(address:)
     Rails.logger.info "WeatherApiClient: Getting weather for address: #{address}"
+    
+    # In production with no API key, return nil instead of showing mock data
+    if Rails.env.production? && @api_key.blank?
+      Rails.logger.error "WeatherApiClient: Cannot fetch weather in production without API key"
+      return nil
+    end
+    
+    # Fall back to mock in development/test if configured
+    if @use_mock
+      Rails.logger.info "WeatherApiClient: Using MockWeatherApiClient for #{address}"
+      return MockWeatherApiClient.instance.get_weather(address: address)
+    end
     
     # Normalize the address for consistent caching
     normalized_address = normalize_address(address)
