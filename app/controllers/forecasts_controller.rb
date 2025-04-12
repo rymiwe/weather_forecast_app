@@ -47,7 +47,7 @@ class ForecastsController < ApplicationController
       end
       
       @units = @forecast.display_units
-      @search_query = @address
+      # Don't set @search_query to maintain an empty search box after submission
       
       # Always render the index template with results
       render :index
@@ -65,13 +65,13 @@ class ForecastsController < ApplicationController
   def handle_forecast_not_found
     flash.now[:alert] = "We couldn't find weather data for '#{@address}'. Please check the address or zip code and try again."
     @search_error = true
-    @search_query = @address
+    # Don't set @search_query to maintain an empty search box after submission
     @forecast = nil
   end
   
   def handle_error(message)
     flash.now[:alert] = message
     @search_error = true
-    @search_query = @address
+    # Don't set @search_query to maintain an empty search box after submission
   end
 end
