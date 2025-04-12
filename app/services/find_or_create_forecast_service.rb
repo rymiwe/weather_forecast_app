@@ -39,12 +39,16 @@ class FindOrCreateForecastService
       Rails.logger.info "FindOrCreateForecastService: Zip code search result: #{forecast ? 'Found' : 'Not found'}"
     else
       Rails.logger.info "FindOrCreateForecastService: Found forecast by normalized address: #{forecast.id}"
+      # Mark this forecast as retrieved from cache
+      forecast.from_cache = true
     end
     
     # If no forecast was found, create a new one
     if forecast.nil?
       forecast = create_new_forecast
       Rails.logger.info "FindOrCreateForecastService: Create new forecast result: #{forecast ? 'Success' : 'Nil'}"
+      # New forecasts are not from cache
+      forecast.from_cache = false if forecast
     end
     
     forecast

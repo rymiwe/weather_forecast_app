@@ -35,6 +35,9 @@ class Forecast < ApplicationRecord
   validates :address, presence: true
   validates :current_temp, :high_temp, :low_temp, presence: true, numericality: true
   
+  # Virtual attribute to track whether a forecast was retrieved from cache
+  attr_accessor :from_cache
+  
   # Scopes
   scope :recent, -> { order(created_at: :desc) }
   

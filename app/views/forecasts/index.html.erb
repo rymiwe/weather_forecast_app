@@ -23,7 +23,7 @@
           (<%= timezone.name %>)
         <% end %>
       </div>
-      <% if @forecast && @forecast.cache_fresh? %>
+      <% if @forecast && @forecast.from_cache %>
         <div class="text-xs text-gray-500 mt-1 mb-2">
           <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Cached</span>
           <span class="ml-1">Key: <%= @forecast.normalized_address %></span>
@@ -201,8 +201,8 @@
               <tr>
                 <td class="table-header">Cache Status</td>
                 <td>
-                  <%= @forecast.cache_fresh? ? "Fresh" : "Expired" %>
-                  <% if @forecast.cache_fresh? %>
+                  <%= @forecast.from_cache ? "Fresh" : "Expired" %>
+                  <% if @forecast.from_cache %>
                     - Expires in <%= minutes_until_expiry > 0 ? "#{minutes_until_expiry} minutes" : "expired" %>
                   <% end %>
                 </td>
