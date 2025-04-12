@@ -168,9 +168,6 @@ class Forecast < ApplicationRecord
   def self.create_from_api_response(address, api_response)
     return nil unless api_response.present?
     
-    current = api_response[:current_weather] || api_response["current_weather"]
-    return nil unless current.present?
-    
     begin
       Rails.logger.info "Forecast.create_from_api_response: Creating forecast for #{address}"
       
@@ -184,29 +181,51 @@ class Forecast < ApplicationRecord
       # Get normalized address for consistent caching
       normalized_address = normalize_address(address)
       
-      # Get current conditions
-      current_temp = 
-        current.dig("main", "temp") || 
-        current["temp_c"] || 
-        current["temp"] || 
-        0
+      # Safely extract current weather data with fallbacks
+      current = api_response[:current_weather] || api_response["current_weather"] || 
+                api_response[:current] || api_response["current"] || {}
       
-      high_temp = 
-        current.dig("main", "temp_max") || 
-        api_response.dig("forecast", "forecastday", 0, "day", "maxtemp_c") ||
-        current["maxtemp_c"] || 
-        current_temp + 5
+      # Extract main weather data based on the API format
+      main = current[:main] || current["main"] || {}
       
-      low_temp = 
-        current.dig("main", "temp_min") || 
-        api_response.dig("forecast", "forecastday", 0, "day", "mintemp_c") ||
-        current["mintemp_c"] || 
-        current_temp - 5
+      # Get current temperature
+      current_temp = main["temp"] || current["temp_c"] || current["temp"] || 22
       
-      conditions = 
-        current.dig("weather", 0, "description") || 
-        current["condition"]["text"] || 
-        "Unknown"
+      # Get high temperature
+      forecast_data = api_response[:forecast] || api_response["forecast"] || {}
+      today_forecast = nil
+      
+      if forecast_data.has_key?("forecastday") && !forecast_data["forecastday"].empty?
+        today_forecast = forecast_data["forecastday"][0]
+      end
+      
+      high_temp = nil
+      if today_forecast && today_forecast.has_key?("day")
+        high_temp = today_forecast["day"]["maxtemp_c"]
+      end
+      
+      high_temp ||= main["temp_max"] || current["maxtemp_c"] || (current_temp + 5)
+      
+      # Get low temperature
+      low_temp = nil
+      if today_forecast && today_forecast.has_key?("day")
+        low_temp = today_forecast["day"]["mintemp_c"]
+      end
+      
+      low_temp ||= main["temp_min"] || current["mintemp_c"] || (current_temp - 5)
+      
+      # Get weather conditions
+      weather = current[:weather] || current["weather"] || []
+      weather = [weather] unless weather.is_a?(Array) 
+      
+      conditions = nil
+      if current.has_key?("condition") && current["condition"].has_key?("text")
+        conditions = current["condition"]["text"]
+      elsif !weather.empty? && weather[0].has_key?("description")
+        conditions = weather[0]["description"]
+      else
+        conditions = "Clear"
+      end
       
       # Create and return the forecast
       forecast = create(
