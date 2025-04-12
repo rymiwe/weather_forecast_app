@@ -146,14 +146,19 @@
           <!-- Extended forecast -->
           <% if @forecast.daily_forecasts.present? %>
             <% use_imperial = @forecast.should_use_imperial? %>
-            <% days = get_forecast_days(@forecast.daily_forecasts, timezone&.name, use_imperial) %>
             <% 
-              # Set the current date based on the location's timezone
-              today = local_time&.to_date || Date.current
-              # Filter out today from the forecast days to prevent duplication
-              future_days = days.reject { |day| day[:date].to_date == today }
+              # Get all forecast days
+              all_days = get_forecast_days(@forecast.daily_forecasts, timezone&.name, use_imperial)
+              
+              # Filter out days that are in the past relative to the location's date
+              days = all_days.reject { |day| day[:date].to_date < local_time.to_date }
+              
+              # Debugging: Log forecast days for troubleshooting
+              Rails.logger.debug "Forecast days after filtering: #{days.map { |d| "#{d[:date].strftime('%a %-m/%-d')}" }.join(', ')}"
+              
               # Take the next two days
-              future_days.first(2).each do |day| 
+              future_days = days.first(2)
+              future_days.each do |day| 
             %>
               <div class="forecast-card">
                 <div class="text-center">

@@ -71,7 +71,16 @@
         <!-- Extended forecast days in a horizontal row -->
         <% daily_forecasts = @forecast.daily_forecasts %>
         <% if daily_forecasts.present? %>
-          <% days = get_forecast_days(daily_forecasts) %>
+          <% 
+             # Get all days
+             all_days = get_forecast_days(daily_forecasts)
+             
+             # Filter out days that are in the past relative to the location's date
+             days = all_days.reject { |day| day[:date].to_date < local_time.to_date }
+
+             # Debugging log
+             Rails.logger.debug "Forecast days after filtering: #{days.map { |d| "#{d[:date].strftime('%a %-m/%-d')}" }.join(', ')}"
+          %>
           <div class="grid grid-cols-5 gap-2">
             <% days.first(5).each do |day| %>
               <div class="border border-blue-200 rounded-lg bg-white p-2">
