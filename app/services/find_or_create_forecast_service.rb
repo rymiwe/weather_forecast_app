@@ -27,12 +27,18 @@ class FindOrCreateForecastService
     return nil if @address.blank?
     
     # First try to find a forecast by normalized address
-    forecast = Forecast.find_cached_by_address(@address)
+    normalized = Forecast.normalize_address(@address)
+    Rails.logger.info "FindOrCreateForecastService: Searching with normalized address: '#{normalized}'"
+    forecast = Forecast.find_cached_by_address(normalized)
     
     if forecast.nil?
+      Rails.logger.info "FindOrCreateForecastService: No forecast found by normalized address"
       # If not found by address, try by zip code
       zip_code = extract_zip_code
       forecast = Forecast.find_cached(zip_code) if zip_code.present?
+      Rails.logger.info "FindOrCreateForecastService: Zip code search result: #{forecast ? 'Found' : 'Not found'}"
+    else
+      Rails.logger.info "FindOrCreateForecastService: Found forecast by normalized address: #{forecast.id}"
     end
     
     # If no forecast was found, create a new one
