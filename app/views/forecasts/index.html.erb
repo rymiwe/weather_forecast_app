@@ -148,13 +148,10 @@
             <% use_imperial = @forecast.should_use_imperial? %>
             <% 
               # Get all forecast days
-              all_days = get_forecast_days(@forecast.daily_forecasts, timezone&.name, use_imperial)
-              
-              # Filter out days that are in the past relative to the location's date
-              days = all_days.reject { |day| day[:date].to_date < local_time.to_date }
+              days = get_forecast_days(@forecast.daily_forecasts, timezone&.name, use_imperial)
               
               # Debugging: Log forecast days for troubleshooting
-              Rails.logger.debug "Forecast days after filtering: #{days.map { |d| "#{d[:date].strftime('%a %-m/%-d')}" }.join(', ')}"
+              Rails.logger.debug "Forecast days: #{days.map { |d| "#{d[:date].strftime('%a %-m/%-d')}" }.join(', ')}"
               
               # Take the next two days
               future_days = days.first(2)
@@ -163,7 +160,7 @@
               <div class="forecast-card">
                 <div class="text-center">
                   <div class="text-blue-700 font-semibold text-sm">
-                    <% if index == 0 && day[:date].to_date == local_time.to_date %>
+                    <% if index == 0 %>
                       Today
                     <% else %>
                       <%= day[:date].strftime('%a') %>
