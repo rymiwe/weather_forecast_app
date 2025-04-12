@@ -23,15 +23,8 @@ module ForecastsHelper
     if forecast_list.first.is_a?(Hash) && forecast_list.first['date']
       # WeatherAPI.com format - forecast > forecastday > condition
       return forecast_list.map do |day|
-        date = if timezone.present?
-          begin
-            Time.parse(day['date']).in_time_zone(timezone).to_date
-          rescue
-            Date.parse(day['date'])
-          end
-        else
-          Date.parse(day['date'])
-        end
+        # Simply parse the date directly - API dates are already in local timezone
+        date = Date.parse(day['date'])
 
         # Use imperial or metric temperature values based on preference
         temp_key_high = use_imperial ? 'maxtemp_f' : 'maxtemp_c'
@@ -56,7 +49,9 @@ module ForecastsHelper
       # Skip if dt is nil to avoid errors
       next unless item['dt'].present?
       
-      date = Time.at(item['dt']).to_date
+      # Convert timestamp to Date, but don't apply timezone conversions
+      # The API already provides timestamps in the location's timezone
+      date = Time.at(item['dt']).utc.to_date
       day_key = date.to_s
       
       if !days[day_key]
