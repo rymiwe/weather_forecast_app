@@ -40,8 +40,8 @@ gem "jbuilder"
 # Use ViewComponent for component-based UI architecture
 gem "view_component"
 
-# IP-based geolocation for regional unit selection
-gem "geocoder"
+# Geocoder for address parsing and geocoding
+gem 'geocoder'
 
 # Temperature unit conversions
 gem 'ruby-units'
