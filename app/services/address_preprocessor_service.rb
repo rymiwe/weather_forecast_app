@@ -92,10 +92,13 @@ class AddressPreprocessorService
   
   private
   
-  # Format coordinates with consistent precision for caching
+  # Format coordinates with consistent precision for caching and API queries
   def self.format_coordinates(coordinates)
     lat = coordinates[0].to_f.round(COORDINATE_PRECISION)
     lon = coordinates[1].to_f.round(COORDINATE_PRECISION)
+    
+    # Use the same format for both API queries and cache keys
+    # The normalize_address method in Forecast model has been updated to handle this format
     "#{lat},#{lon}"
   end
 end

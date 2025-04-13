@@ -173,6 +173,13 @@ class Forecast < ApplicationRecord
   # @param address [String] Address to normalize
   # @return [String] Normalized address
   def self.normalize_address(address)
+    # Special case for coordinates (lat,lon format)
+    if address.to_s.match?(/^\s*-?\d+\.\d+\s*,\s*-?\d+\.\d+\s*$/)
+      # For coordinates, just clean up any extra spaces but preserve the format
+      return address.to_s.strip.gsub(/\s+/, '')
+    end
+    
+    # For all other addresses, use the regular normalization
     # Remove commas, extra spaces, convert to lowercase, and replace spaces with underscores
     address.to_s.strip.downcase.gsub(/,/, '').gsub(/\s+/, ' ').gsub(/\s/, '_')
   end
