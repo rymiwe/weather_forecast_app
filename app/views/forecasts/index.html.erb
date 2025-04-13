@@ -192,12 +192,8 @@
                 <td><%= @forecast.user_query || @forecast.address %></td>
               </tr>
               <tr>
-                <td class="table-header">API Query</td>
-                <td><%= @forecast.api_query || @forecast.address %></td>
-              </tr>
-              <tr>
-                <td class="table-header">Cache Key</td>
-                <td><%= @forecast.normalized_address %></td>
+                <td class="table-header">API Query / Cache Key</td>
+                <td><%= @forecast.api_query || @forecast.normalized_address %></td>
               </tr>
             </table>
           </div>
