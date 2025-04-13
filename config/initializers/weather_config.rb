@@ -14,7 +14,7 @@ Rails.application.configure do
   
   # Use mock weather data in development only if no API key is provided
   if Rails.env.development?
-    api_key = ENV['OPENWEATHERMAP_API_KEY']
+    api_key = ENV['WEATHERAPI_KEY']
     config.x.weather.use_mock_client = api_key.nil? || api_key.empty?
     Rails.logger.info "Weather client setting: #{config.x.weather.use_mock_client ? 'Using MOCK client' : 'Using REAL client'}"
   end

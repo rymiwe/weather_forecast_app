@@ -1,6 +1,4 @@
 # frozen_string_literal: true
-require_relative '../clients/open_weather_map_client'
-require_relative '../clients/mock_open_weather_map_client'
 require_relative '../clients/weather_api_client'
 require_relative '../clients/mock_weather_api_client'
 require_relative 'address_preprocessor_service'
