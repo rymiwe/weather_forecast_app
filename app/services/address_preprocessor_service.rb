@@ -257,9 +257,11 @@ class AddressPreprocessorService
       api_key = ENV['WEATHERAPI_KEY']
       return nil unless api_key.present?
       
-      # Prepare the URL with proper encoding
+      # Send the full original query to the API - let the API handle parsing
       encoded_query = URI.encode_www_form_component(query)
       uri = URI("http://api.weatherapi.com/v1/search.json?key=#{api_key}&q=#{encoded_query}")
+      
+      Rails.logger.info "AddressPreprocessorService: Making WeatherAPI search request with full query: '#{query}'"
       
       # Make the API request
       response = Net::HTTP.get_response(uri)
@@ -267,6 +269,7 @@ class AddressPreprocessorService
       # Check if request was successful
       if response.code.to_i == 200
         results = JSON.parse(response.body)
+        Rails.logger.info "AddressPreprocessorService: WeatherAPI search results: #{results.inspect}"
         
         # Check if we have any results
         if results.present? && results.is_a?(Array) && results.first.present?
@@ -277,6 +280,8 @@ class AddressPreprocessorService
           city = location['name']
           region = location['region']&.split(',')&.first&.strip # Get just the first part of region if it has commas
           country = location['country']
+          
+          Rails.logger.info "AddressPreprocessorService: WeatherAPI found location: city='#{city}', region='#{region}', country='#{country}'"
           
           # For US locations, try to extract state abbreviation
           if country == 'United States of America' && region.present?
@@ -291,7 +296,7 @@ class AddressPreprocessorService
           
           # Format the result (different formats for US vs international)
           if country == 'United States of America'
-            # US format: city state zip (zip is optional)
+            # US format: city state
             return [city, region].compact.join(' ').downcase
           else
             # International format: city, country
