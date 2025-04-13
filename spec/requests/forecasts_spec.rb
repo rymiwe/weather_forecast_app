@@ -14,7 +14,7 @@ RSpec.describe "Forecasts", type: :request do
   ) }
   
   before do
-    ENV['OPENWEATHERMAP_API_KEY'] = api_key
+    ENV['WEATHERAPI_KEY'] = api_key
   end
   
   describe "GET /forecasts" do
@@ -104,7 +104,7 @@ RSpec.describe "Forecasts", type: :request do
       expect(response.body).to include("Cached Result")
       
       # Verify cached result doesn't make new API calls
-      expect_any_instance_of(MockWeatherService).not_to receive(:get_by_address)
+      expect(MockWeatherApiClient.instance).not_to receive(:get_weather)
     end
     
     it "shows different UI indicators for fresh vs cached data" do
@@ -155,10 +155,10 @@ RSpec.describe "Forecasts", type: :request do
     
     it "shows error for invalid address" do
       # Arrange: Stub service to return error
-      error_data = { error: "Invalid address" }
-      weather_service = instance_double(MockWeatherService)
-      allow(weather_service).to receive(:get_by_address).with(any_args).and_return(error_data)
-      allow(MockWeatherService).to receive(:new).and_return(weather_service)
+      error_data = { error: "Could not geocode address", message: "Unable to find location" }
+      
+      # Set up mock client to return error
+      allow(MockWeatherApiClient.instance).to receive(:get_weather).with(any_args).and_return(error_data)
       
       # Act: Perform request with invalid address
       get forecasts_path, params: { address: "Invalid location" }
