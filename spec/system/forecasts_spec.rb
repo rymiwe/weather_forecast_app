@@ -3,10 +3,13 @@ require 'rails_helper'
 RSpec.describe "Weather Forecasts", type: :system do
   before do
     # Set up environment with API key
-    ENV['OPENWEATHERMAP_API_KEY'] = 'test_api_key'
+    ENV['WEATHERAPI_KEY'] = 'test_api_key'
     
-    # Set up stubbing for the MockWeatherService
-    allow_any_instance_of(MockWeatherService).to receive(:get_by_address).and_call_original
+    # Ensure mock client is used for tests
+    allow(Rails.configuration.x.weather).to receive(:use_mock_client).and_return(true)
+    
+    # Set up stubbing for the MockWeatherApiClient
+    allow(MockWeatherApiClient.instance).to receive(:get_weather).and_call_original
   end
 
   describe "Visiting the home page" do
@@ -37,7 +40,7 @@ RSpec.describe "Weather Forecasts", type: :system do
       )
       
       # Make sure our service returns the created forecast
-      allow(ForecastRetrievalService).to receive(:retrieve).with(any_args).and_return(forecast)
+      allow(WeatherApiClient).to receive(:get_weather).with(any_args).and_return(forecast)
       
       # Stub the application controller to use imperial units
       allow_any_instance_of(ApplicationController).to receive(:temperature_units).and_return('imperial')
@@ -71,7 +74,7 @@ RSpec.describe "Weather Forecasts", type: :system do
       )
       
       # Stub the forecast retrieval service to use our forecast
-      allow(ForecastRetrievalService).to receive(:retrieve).with(any_args).and_return(forecast)
+      allow(WeatherApiClient).to receive(:get_weather).with(any_args).and_return(forecast)
       
       # Simple temperature helper stub that doesn't rely on specific arguments
       allow_any_instance_of(TemperatureHelper).to receive(:display_temperature).and_return("15°C")
@@ -91,7 +94,7 @@ RSpec.describe "Weather Forecasts", type: :system do
     
     it "shows an error message for invalid location" do
       # Stub the service to return an error
-      allow_any_instance_of(MockWeatherService).to receive(:get_by_address)
+      allow(MockWeatherApiClient.instance).to receive(:get_weather)
         .with("Invalid Location")
         .and_return({ error: "Could not geocode address" })
       
@@ -224,7 +227,7 @@ RSpec.describe "Weather Forecasts", type: :system do
       }
       
       # Stub the service to return our fresh data when called
-      allow_any_instance_of(MockWeatherService).to receive(:get_by_address)
+      allow(MockWeatherApiClient.instance).to receive(:get_weather)
         .with(cached_forecast.zip_code)
         .and_return(fresh_data)
       
