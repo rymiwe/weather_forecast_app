@@ -83,7 +83,8 @@ group :test do
   gem "selenium-webdriver", "~> 4.10.0" # Specify compatible version for webdrivers
   gem "webdrivers", "~> 5.3.0" # For auto-installing drivers like Chrome, Firefox, etc.
   gem "launchy"                # For debugging with save_and_open_page
-  gem 'percy-capybara'
+  # Percy for visual testing - use specific version to avoid dependency conflicts
+  gem 'percy-capybara', '~> 4.3.2'
 end
 
 group :development do

@@ -184,8 +184,7 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.7-x86_64-linux-musl)
       racc (~> 1.4)
-    percy-capybara (5.0.0)
-      capybara (>= 3)
+    percy-capybara (4.3.3)
     pg (1.5.9)
     pp (0.6.2)
       prettyprint
@@ -361,7 +360,7 @@ DEPENDENCIES
   importmap-rails
   jbuilder
   launchy
-  percy-capybara
+  percy-capybara (~> 4.3.2)
   pg
   puma (>= 5.0)
   rails (~> 7.1.5, >= 7.1.5.1)

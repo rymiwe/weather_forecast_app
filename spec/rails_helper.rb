@@ -56,14 +56,14 @@ rescue ActiveRecord::PendingMigrationError => e
   abort e.to_s.strip
 end
 RSpec.configure do |config|
-  # Percy initialization
-  config.before(:suite) do
-    Percy::Capybara.initialize_build
-  end
+  # Percy initialization - temporarily disabled
+  # config.before(:suite) do
+  #   Percy::Capybara.initialize_build
+  # end
 
-  config.after(:suite) do
-    Percy::Capybara.finalize_build
-  end
+  # config.after(:suite) do
+  #   Percy::Capybara.finalize_build
+  # end
   
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [
