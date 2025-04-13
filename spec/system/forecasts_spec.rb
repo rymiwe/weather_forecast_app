@@ -56,6 +56,9 @@ RSpec.describe "Weather Forecasts", type: :system do
       fill_in "address", with: "Seattle, WA"
       click_button "Get Forecast"
       
+      # Take a Percy snapshot of the search results
+      Percy.snapshot(page, name: 'weather_results_for_seattle')
+      
       # Verify basic content - focus on the address being shown
       expect(page).to have_content("Seattle")
     end
@@ -106,6 +109,9 @@ RSpec.describe "Weather Forecasts", type: :system do
       # When an error occurs, we stay on the search page and no results are shown
       expect(page).to have_current_path(root_path, ignore_query: true)
       expect(page).not_to have_content("Current Temperature")
+      
+      # Take a Percy snapshot of the error state
+      Percy.snapshot(page, name: 'weather_error_invalid_location')
     end
     
     it "uses cached data when available" do
@@ -165,6 +171,9 @@ RSpec.describe "Weather Forecasts", type: :system do
     it "displays detailed forecast information" do
       # Visit the details page
       visit forecast_path(forecast)
+      
+      # Take a Percy snapshot of the detailed forecast view
+      Percy.snapshot(page, name: 'detailed_forecast_view')
       
       # Verify forecast details are displayed
       expect(page).to have_content("Detailed Forecast")
