@@ -3,6 +3,9 @@
 # Service for preprocessing addresses to improve weather API results
 # Extracts city, state/region, and postal code while removing street-level details
 class AddressPreprocessorService
+  # Precision for rounding coordinates (5 decimal places is about 1.1 meters precision)
+  COORDINATE_PRECISION = 4
+
   # Preprocess an address to extract the most relevant parts for weather lookup
   # @param address [String] Raw address or location string
   # @return [String] Processed address with only city, state, and postal code if found
@@ -16,6 +19,19 @@ class AddressPreprocessorService
     # First check if it's a simple ZIP code
     if processed =~ /^\d{5}(-\d{4})?$/
       Rails.logger.info "AddressPreprocessorService: Input is a ZIP code: '#{processed}'"
+      # Even for ZIP codes, we'll geocode to get the coordinates for consistency
+      begin
+        results = Geocoder.search(processed)
+        if results.present? && results.first.present? && results.first.coordinates.present? && results.first.coordinates.all?(&:present?)
+          coordinates = format_coordinates(results.first.coordinates)
+          Rails.logger.info "AddressPreprocessorService: Converted ZIP code to coordinates: '#{coordinates}'"
+          return coordinates
+        end
+      rescue => e
+        Rails.logger.error "AddressPreprocessorService: Error geocoding ZIP code: #{e.message}"
+      end
+      
+      # If geocoding failed, use the ZIP code directly as fallback
       return processed
     end
     
@@ -28,32 +44,40 @@ class AddressPreprocessorService
         result = results.first
         Rails.logger.info "AddressPreprocessorService: Geocoder found location: #{result.inspect}"
         
-        # Get the most precise location data available
-        if result.postal_code.present?
-          # If we have a postal code, use that as the most precise identifier
-          # This is ideal for the WeatherAPI as it's precise and stable
-          location_key = result.postal_code
-          Rails.logger.info "AddressPreprocessorService: Using postal code: '#{location_key}'"
-        elsif result.coordinates.present? && result.coordinates.all?(&:present?)
-          # If no postal code but we have coordinates, use them
-          # Format as "lat,lon" - WeatherAPI accepts this format
-          location_key = result.coordinates.join(',')
-          Rails.logger.info "AddressPreprocessorService: Using coordinates: '#{location_key}'"
-        elsif result.city.present? && result.state_code.present?
-          # If we have city and state, use that format
-          location_key = "#{result.city} #{result.state_code}".downcase
-          Rails.logger.info "AddressPreprocessorService: Using city and state: '#{location_key}'"
-        elsif result.city.present? && result.country.present?
-          # For international locations without state/province info
-          location_key = "#{result.city} #{result.country}".downcase
-          Rails.logger.info "AddressPreprocessorService: Using city and country: '#{location_key}'"
-        else
-          # Fallback to the original processed input
-          location_key = processed
-          Rails.logger.info "AddressPreprocessorService: No precise location data found, using processed input: '#{location_key}'"
+        # Always use coordinates when available
+        if result.coordinates.present? && result.coordinates.all?(&:present?)
+          coordinates = format_coordinates(result.coordinates)
+          Rails.logger.info "AddressPreprocessorService: Using coordinates: '#{coordinates}'"
+          return coordinates
+        elsif result.postal_code.present?
+          # If no coordinates but we have a postal code, try geocoding it to get coordinates
+          postal_results = Geocoder.search(result.postal_code)
+          if postal_results.present? && postal_results.first.present? && 
+             postal_results.first.coordinates.present? && postal_results.first.coordinates.all?(&:present?)
+            coordinates = format_coordinates(postal_results.first.coordinates)
+            Rails.logger.info "AddressPreprocessorService: Converted postal code to coordinates: '#{coordinates}'"
+            return coordinates
+          end
+          
+          # If geocoding the postal code failed, use the postal code directly
+          Rails.logger.info "AddressPreprocessorService: Using postal code: '#{result.postal_code}'"
+          return result.postal_code
+        elsif result.city.present? && (result.state_code.present? || result.country.present?)
+          # If we have city and state/country but no coordinates, try geocoding the city
+          location = [result.city, result.state_code || result.country].compact.join(' ')
+          city_results = Geocoder.search(location)
+          if city_results.present? && city_results.first.present? && 
+             city_results.first.coordinates.present? && city_results.first.coordinates.all?(&:present?)
+            coordinates = format_coordinates(city_results.first.coordinates)
+            Rails.logger.info "AddressPreprocessorService: Converted city to coordinates: '#{coordinates}'"
+            return coordinates
+          end
+          
+          # If geocoding the city failed, use the city and state/country directly
+          location_key = location.downcase
+          Rails.logger.info "AddressPreprocessorService: Using city and state/country: '#{location_key}'"
+          return location_key
         end
-        
-        return location_key
       else
         Rails.logger.warn "AddressPreprocessorService: Geocoding returned no results for: '#{processed}'"
       end
@@ -64,5 +88,14 @@ class AddressPreprocessorService
     # If all else fails, return the processed input
     Rails.logger.info "AddressPreprocessorService: Using normalized input as fallback: '#{processed}'"
     return processed
+  end
+  
+  private
+  
+  # Format coordinates with consistent precision for caching
+  def self.format_coordinates(coordinates)
+    lat = coordinates[0].to_f.round(COORDINATE_PRECISION)
+    lon = coordinates[1].to_f.round(COORDINATE_PRECISION)
+    "#{lat},#{lon}"
   end
 end
