@@ -70,10 +70,18 @@ class WeatherApiClient < ApiClientBase
   def real_get_weather(address)
     Rails.logger.info "WeatherApiClient#real_get_weather: Starting API request for #{address}"
     
+    # Ensure US ZIP codes are properly identified
+    query = address
+    if address.to_s.match?(/^\d{5}(-\d{4})?$/)
+      # For US ZIP codes, append US to ensure proper geo-location
+      query = "#{address},us" 
+      Rails.logger.info "WeatherApiClient: US ZIP code detected, modified query to: #{query}"
+    end
+    
     # Build the API URL - use the proper v1 path 
     url = URI("#{@base_url}/v1/forecast.json")
     params = {
-      q: address,
+      q: query,
       days: 3, # WeatherAPI.com free plan allows up to 3 days
       aqi: 'yes', # Include air quality data
       key: @api_key # WeatherAPI.com uses 'key' parameter, not 'appid'
