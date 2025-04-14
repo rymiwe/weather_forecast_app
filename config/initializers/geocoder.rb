@@ -21,6 +21,9 @@ Geocoder.configure(
   # In case of failure, return nil rather than raising an exception
   always_raise: [],
   
+  # Set country bias to US to improve ZIP code geocoding accuracy
+  country_bias: "US",
+  
   # Rate limiting - be polite to the geocoding service
   # Nominatim's limit is 1 request per second
   api_key: nil,

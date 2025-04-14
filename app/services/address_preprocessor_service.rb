@@ -18,26 +18,48 @@ class AddressPreprocessorService
     
     # First check if it's a simple ZIP code
     if processed =~ /^\d{5}(-\d{4})?$/
-      Rails.logger.info "AddressPreprocessorService: Input is a ZIP code: '#{processed}'"
-      # Explicitly mark US ZIP codes with ",us" suffix
-      us_zip = "#{processed},us"
-      Rails.logger.info "AddressPreprocessorService: Using US ZIP code format: '#{us_zip}'"
+      Rails.logger.info "AddressPreprocessorService: Input is a US ZIP code: '#{processed}'"
       
-      # Even for ZIP codes, we'll geocode to get the coordinates for consistency
+      # For US ZIP codes, try geocoding with country bias first
       begin
-        # Use the US-specific ZIP code for geocoding to ensure proper location
+        # Make sure the geocoder knows this is a US ZIP
+        us_zip = "#{processed},usa"
+        Rails.logger.info "AddressPreprocessorService: Geocoding US ZIP code: '#{us_zip}'"
         results = Geocoder.search(us_zip)
+        
         if results.present? && results.first.present? && results.first.coordinates.present? && results.first.coordinates.all?(&:present?)
           coordinates = format_coordinates(results.first.coordinates)
-          Rails.logger.info "AddressPreprocessorService: Converted ZIP code to coordinates: '#{coordinates}'"
+          Rails.logger.info "AddressPreprocessorService: Successfully geocoded ZIP code to coordinates: '#{coordinates}'"
           return coordinates
+        else
+          Rails.logger.warn "AddressPreprocessorService: Geocoding of ZIP code did not return valid coordinates"
         end
       rescue => e
         Rails.logger.error "AddressPreprocessorService: Error geocoding ZIP code: #{e.message}"
       end
       
-      # If geocoding failed, use the US-specific ZIP code directly as fallback
-      return us_zip
+      # If geocoding failed, try a second method - using geocoder with exact format
+      begin
+        full_us_zip = "zipcode #{processed} USA"
+        Rails.logger.info "AddressPreprocessorService: Trying alternative geocoding for ZIP: '#{full_us_zip}'"
+        backup_results = Geocoder.search(full_us_zip)
+        
+        if backup_results.present? && backup_results.first.present? && 
+           backup_results.first.coordinates.present? && backup_results.first.coordinates.all?(&:present?)
+          coordinates = format_coordinates(backup_results.first.coordinates)
+          Rails.logger.info "AddressPreprocessorService: Alternative geocoding successful: '#{coordinates}'"
+          return coordinates
+        else
+          Rails.logger.warn "AddressPreprocessorService: Alternative geocoding of ZIP code failed"
+        end
+      rescue => e
+        Rails.logger.error "AddressPreprocessorService: Error in alternative geocoding: #{e.message}"
+      end
+      
+      # Last resort - use the WeatherAPI's ability to handle US ZIP codes by explicitly marking it
+      us_zip_for_api = "#{processed},us" 
+      Rails.logger.info "AddressPreprocessorService: Falling back to direct ZIP code with US suffix: '#{us_zip_for_api}'"
+      return us_zip_for_api
     end
     
     # Use Geocoder to find location information
