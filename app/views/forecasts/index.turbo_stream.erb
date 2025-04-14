@@ -10,7 +10,7 @@
               <%= @forecast.queried_at.strftime("%A, %B %d, %Y at %I:%M %p") %>
             </p>
           </div>
-          <% if @forecast.cached? %>
+          <% if @forecast.from_cache %>
             <div class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
               Cached Result
             </div>
