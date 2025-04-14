@@ -10,6 +10,7 @@ class ForecastsController < ApplicationController
       search_for_forecast(params[:address])
     end
   end
+
   
   # Display forecast search results
   def search

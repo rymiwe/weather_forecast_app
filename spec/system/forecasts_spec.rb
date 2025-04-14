@@ -165,59 +165,6 @@ RSpec.describe "Weather Forecasts", type: :system do
     end
   end
   
-  describe "Viewing forecast details" do
-    let(:forecast) { create(:forecast) }
-    
-    it "displays detailed forecast information" do
-      # Visit the details page
-      visit forecast_path(forecast)
-      
-      # Percy integration temporarily disabled
-      # Percy.snapshot(page, name: 'detailed_forecast_view')
-      
-      # Verify forecast details are displayed
-      expect(page).to have_content("Detailed Forecast")
-      expect(page).to have_content(forecast.address)
-      expect(page).to have_css("h3", text: /\d+°F|\d+°C/)
-      
-      # Check for the high and low temperatures in the format they appear
-      expect(page).to have_css("span", text: /\d+°/)
-      
-      # Verify extended forecast section exists
-      expect(page).to have_content("5-Day Forecast")
-      
-      # Parse and check the extended forecast data if present
-      if forecast.extended_forecast.present?
-        extended_data = JSON.parse(forecast.extended_forecast)
-        if extended_data.any?
-          day = extended_data.first
-          # Check day names and conditions
-          expect(page).to have_content(day["day_name"])
-          expect(page).to have_content(day["conditions"].first)
-        end
-      end
-      
-      # Verify other elements
-      expect(page).to have_content("Technical Information")
-      expect(page).to have_content("FORECAST ID")
-      
-      # Verify navigation
-      expect(page).to have_link("Back to Search")
-      
-      # Should display weather icons
-      expect(page).to have_css("svg") # At least one SVG icon should be present
-    end
-    
-    it "redirects to index if forecast not found" do
-      # Visit a non-existent forecast
-      visit forecast_path(id: 999999)
-      
-      # Verify we're redirected with an alert
-      expect(page).to have_current_path(forecasts_path)
-      expect(page).to have_content("Forecast not found")
-    end
-  end
-  
   describe "End-to-end flow" do
     it "handles the caching lifecycle correctly", js: true do
       # Create a cached forecast
@@ -262,11 +209,12 @@ RSpec.describe "Weather Forecasts", type: :system do
       expect(page).to have_css("h3", text: /\d+°F|\d+°C/)
       expect(page).not_to have_content("Cached Result")
       
-      # Verify the technical information on the details page
-      click_link "View Details"
-      within "div.p-6.bg-gray-50.border-t" do
-        expect(page).to have_content("CACHE STATUS")
-        expect(page).to have_content("Fresh Data")
+      # Verify the technical information by expanding the details section
+      # instead of visiting the details page (which no longer exists)
+      find('button', text: 'Details').click
+      within('.details-content') do
+        expect(page).to have_content("Cache Status")
+        expect(page).to have_content("Fresh")
       end
     end
   end

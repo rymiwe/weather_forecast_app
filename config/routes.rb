@@ -13,7 +13,7 @@ Rails.application.routes.draw do
   post 'forecasts/search', to: 'forecasts#search'
   
   # Only define the routes we need (index and show)
-  resources :forecasts, only: [:index, :show] do
+  resources :forecasts, only: [:index] do
     member do
       post 'set_units'
       post 'refresh_cache' # Add a route for refreshing the cache

@@ -27,8 +27,10 @@ RSpec.describe "Temperature Units", type: :system do
       # Force metric units in the controller
       allow_any_instance_of(ApplicationController).to receive(:temperature_units).and_return('metric')
       
-      # Visit the forecast detail page
-      visit forecast_path(forecast)
+      # Visit root path and search instead of visiting forecast directly
+      visit root_path
+      fill_in "address", with: forecast.address
+      click_button "Get Forecast"
       
       # Should show temperatures in Celsius
       expect(page).to have_css("h3", text: /\d+°C/)
@@ -122,8 +124,10 @@ RSpec.describe "Temperature Units", type: :system do
       # Use the correct configuration path that the service is actually using
       allow(Rails.configuration.x.weather).to receive(:default_unit).and_return('metric')
       
-      # Visit the forecast detail page
-      visit forecast_path(forecast)
+      # Visit root path and search instead of visiting forecast directly
+      visit root_path
+      fill_in "address", with: forecast.address
+      click_button "Get Forecast"
       
       # Simply check that we have a temperature with Celsius units somewhere
       expect(page).to have_css("h3", text: /\d+°C/)
