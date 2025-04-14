@@ -20,7 +20,7 @@ class AddressPreprocessorService
     if processed =~ /^\d{5}(-\d{4})?$/
       Rails.logger.info "AddressPreprocessorService: Input is a US ZIP code: '#{processed}'"
       
-      # For US ZIP codes, try geocoding with country bias first
+      # For US ZIP codes, try geocoding with country bias
       begin
         # Make sure the geocoder knows this is a US ZIP
         us_zip = "#{processed},usa"
@@ -32,34 +32,13 @@ class AddressPreprocessorService
           Rails.logger.info "AddressPreprocessorService: Successfully geocoded ZIP code to coordinates: '#{coordinates}'"
           return coordinates
         else
-          Rails.logger.warn "AddressPreprocessorService: Geocoding of ZIP code did not return valid coordinates"
+          Rails.logger.warn "AddressPreprocessorService: Geocoding of US ZIP code failed to return valid coordinates"
+          return nil
         end
       rescue => e
-        Rails.logger.error "AddressPreprocessorService: Error geocoding ZIP code: #{e.message}"
+        Rails.logger.error "AddressPreprocessorService: Error geocoding US ZIP code: #{e.message}"
+        return nil
       end
-      
-      # If geocoding failed, try a second method - using geocoder with exact format
-      begin
-        full_us_zip = "zipcode #{processed} USA"
-        Rails.logger.info "AddressPreprocessorService: Trying alternative geocoding for ZIP: '#{full_us_zip}'"
-        backup_results = Geocoder.search(full_us_zip)
-        
-        if backup_results.present? && backup_results.first.present? && 
-           backup_results.first.coordinates.present? && backup_results.first.coordinates.all?(&:present?)
-          coordinates = format_coordinates(backup_results.first.coordinates)
-          Rails.logger.info "AddressPreprocessorService: Alternative geocoding successful: '#{coordinates}'"
-          return coordinates
-        else
-          Rails.logger.warn "AddressPreprocessorService: Alternative geocoding of ZIP code failed"
-        end
-      rescue => e
-        Rails.logger.error "AddressPreprocessorService: Error in alternative geocoding: #{e.message}"
-      end
-      
-      # Last resort - use the WeatherAPI's ability to handle US ZIP codes by explicitly marking it
-      us_zip_for_api = "#{processed},us" 
-      Rails.logger.info "AddressPreprocessorService: Falling back to direct ZIP code with US suffix: '#{us_zip_for_api}'"
-      return us_zip_for_api
     end
     
     # Use Geocoder to find location information
@@ -84,11 +63,10 @@ class AddressPreprocessorService
             coordinates = format_coordinates(postal_results.first.coordinates)
             Rails.logger.info "AddressPreprocessorService: Converted postal code to coordinates: '#{coordinates}'"
             return coordinates
+          else
+            Rails.logger.warn "AddressPreprocessorService: Could not geocode postal code to coordinates"
+            return nil
           end
-          
-          # If geocoding the postal code failed, use the postal code directly
-          Rails.logger.info "AddressPreprocessorService: Using postal code: '#{result.postal_code}'"
-          return result.postal_code
         elsif result.city.present? && (result.state_code.present? || result.country.present?)
           # If we have city and state/country but no coordinates, try geocoding the city
           location = [result.city, result.state_code || result.country].compact.join(' ')
@@ -98,23 +76,22 @@ class AddressPreprocessorService
             coordinates = format_coordinates(city_results.first.coordinates)
             Rails.logger.info "AddressPreprocessorService: Converted city to coordinates: '#{coordinates}'"
             return coordinates
+          else
+            Rails.logger.warn "AddressPreprocessorService: Could not geocode city to coordinates"
+            return nil
           end
-          
-          # If geocoding the city failed, use the city and state/country directly
-          location_key = location.downcase
-          Rails.logger.info "AddressPreprocessorService: Using city and state/country: '#{location_key}'"
-          return location_key
+        else
+          Rails.logger.warn "AddressPreprocessorService: Geocoding result doesn't have usable location information"
+          return nil
         end
       else
         Rails.logger.warn "AddressPreprocessorService: Geocoding returned no results for: '#{processed}'"
+        return nil
       end
     rescue => e
       Rails.logger.error "AddressPreprocessorService: Error during geocoding: #{e.message}"
+      return nil
     end
-    
-    # If all else fails, return the processed input
-    Rails.logger.info "AddressPreprocessorService: Using normalized input as fallback: '#{processed}'"
-    return processed
   end
   
   private

@@ -27,6 +27,15 @@ class FindOrCreateForecastService
     
     # Preprocess the address for API lookup
     processed_address = AddressPreprocessorService.preprocess(@address)
+    
+    # Return nil with an error if geocoding failed
+    if processed_address.nil?
+      Rails.logger.error "FindOrCreateForecastService: Unable to geocode address: '#{@address}'"
+      return Forecast.new.tap do |f|
+        f.errors.add(:address, "Unable to find location. Please try a different search term.")
+      end
+    end
+    
     Rails.logger.info "FindOrCreateForecastService: Using preprocessed address: '#{processed_address}' (original: '#{@address}')"
     
     # Find forecast by normalized processed address
