@@ -1,13 +1,5 @@
 /* Forecast display styles */
 
-/* Container styling */
-.app-container {
-  max-width: 1200px !important;
-  margin: 0 auto !important;
-  padding: 2rem 1rem !important;
-  min-height: 100vh !important;
-}
-
 /* Main container styling */
 .forecast-container {
   border-radius: 0.5rem !important;
@@ -17,11 +9,6 @@
 }
 
 /* Search form styling */
-.search-container {
-  max-width: 560px !important;
-  margin: 0 auto 2rem auto !important;
-}
-
 .search-form {
   max-width: 800px;
   margin: 0 auto 1.5rem;
@@ -29,12 +16,6 @@
   gap: 0.5rem;
   align-items: center;
   justify-content: center;
-}
-
-.search-input-container {
-  flex: 0 1 500px;
-  max-width: 500px;
-  width: 100%;
 }
 
 .search-input {
@@ -62,16 +43,10 @@
   border: none !important;
   cursor: pointer !important;
   transition: background-color 0.2s !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 .search-button:hover {
   background-color: #2563eb !important;
-}
-
-.search-button:focus {
-  outline: none !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
 }
 
 /* Override any Tailwind or other framework styles to ensure horizontal layout */
@@ -134,30 +109,14 @@
   font-size: 0.8rem !important;
 }
 
-/* Current weather styling */
-.current-weather {
-  color: #1e40af !important;
+/* Details section styling */
+.details-section {
+  border-top: 1px solid #e5e7eb !important;
 }
 
-.current-temp {
-  font-size: 1.1rem !important;
-  font-weight: 600 !important;
-  margin: 0.25rem 0 !important;
-  color: #1a56db !important; /* Slightly darker blue for better contrast */
-}
-
-.high-low-temp {
-  color: #4b5563 !important; /* Changed from #6b7280 for better contrast */
-  font-size: 0.8rem !important;
-}
-
-.condition-text {
-  color: #3b82f6 !important;
-  font-size: 0.75rem !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  max-width: 100% !important;
+.details-content {
+  background-color: #f9fafb !important;
+  border-top: 1px solid #e5e7eb !important;
 }
 
 /* Details toggle button styling */
@@ -187,45 +146,28 @@
   display: inline-block;
 }
 
-/* Details section styling */
-.details-section {
-  border-top: 1px solid #e5e7eb !important;
-}
-
-.details-content {
-  background-color: #f9fafb !important;
-  border-top: 1px solid #e5e7eb !important;
+/* Main app container */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  min-height: 100vh;
 }
 
 /* Metadata table styling */
 .metadata-table {
-  width: 100% !important;
-  border-collapse: collapse !important;
-  font-size: 0.75rem !important;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
 }
 
 .metadata-table td {
-  padding: 0.5rem !important;
-  border: 1px solid #e5e7eb !important;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
 }
 
 .metadata-table .table-header {
-  background-color: #f3f4f6 !important;
-  color: #4b5563 !important;
-  font-weight: 500 !important;
-}
-
-/* Raw data styling */
-.raw-data-container {
-  background-color: #f3f4f6 !important;
-  border-radius: 0.25rem !important;
-  border: 1px solid #e5e7eb !important;
-}
-
-/* Body styling */
-body {
-  margin: 0 !important;
-  padding: 0 !important;
-  min-height: 100vh !important;
-  background-color: #e5e7eb !important; /* Same as bg-gray-200 */
+  background-color: #f3f4f6;
+  color: #4b5563;
+  font-weight: 500;
 }
