@@ -127,6 +127,11 @@
                     <%= format_temp(day[:high_temp], @forecast.should_use_imperial? ? 'imperial' : 'metric') %> / 
                     <%= format_temp(day[:low_temp], @forecast.should_use_imperial? ? 'imperial' : 'metric') %>
                   </div>
+                  <% if index == 0 && day[:current_temp].present? %>
+                    <div class="font-bold text-blue-600 text-xs whitespace-nowrap">
+                      <%= format_temp(day[:current_temp], @forecast.should_use_imperial? ? 'imperial' : 'metric') %> now
+                    </div>
+                  <% end %>
                   <div class="text-blue-600 text-xs truncate"><%= format_conditions(day[:condition]['text']) %></div>
                 </div>
               </div>
