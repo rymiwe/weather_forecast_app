@@ -58,7 +58,8 @@ class ForecastsController < ApplicationController
     end
     
     flash[:notice] = "Forecast data refreshed successfully!"
-    redirect_to forecast_path(@forecast)
+    # Redirect to search results instead of show page since that's what we use
+    redirect_to forecasts_path(address: address)
   rescue StandardError => e
     Rails.logger.error "Error refreshing forecast: #{e.message}"
     flash[:alert] = "Error refreshing forecast: #{e.message}"
