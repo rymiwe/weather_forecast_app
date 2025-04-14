@@ -48,6 +48,9 @@ gem 'geocoder'
 # Temperature unit conversions
 gem 'ruby-units'
 
+# HTTP client for API requests
+gem 'faraday'
+
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
 
@@ -77,7 +80,6 @@ group :development, :test do
   # VCR for recording HTTP interactions in tests
   gem 'vcr'
   gem 'webmock'
-  gem 'faraday'
 end
 
 group :test do
