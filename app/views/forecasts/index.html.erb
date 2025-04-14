@@ -107,6 +107,12 @@
             <% 
               # Show all days from the API response
               days = get_forecast_days(@forecast.daily_forecasts, timezone&.name, @forecast.should_use_imperial?)
+              
+              # Add current temperature to the first day (today)
+              if days.present? && days.first && @forecast.current_weather.present?
+                current_temp_key = @forecast.should_use_imperial? ? 'temp_f' : 'temp_c'
+                days.first[:current_temp] = @forecast.current_weather[current_temp_key]
+              end
             %>
             <% days.each_with_index do |day, index| %>
               <div class="forecast-card">
