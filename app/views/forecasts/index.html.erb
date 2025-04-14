@@ -195,6 +195,16 @@
                 <td class="table-header">API Query / Cache Key</td>
                 <td><%= @forecast.api_query || @forecast.normalized_address %></td>
               </tr>
+              <tr>
+                <td class="table-header">Actions</td>
+                <td>
+                  <%= button_to "Refresh Data", refresh_cache_forecast_path(@forecast), 
+                      method: :post,
+                      form: { class: "inline-block" },
+                      class: "bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" %>
+                  <span class="text-xs text-gray-500 ml-2">Forces a fresh API call</span>
+                </td>
+              </tr>
             </table>
           </div>
           
