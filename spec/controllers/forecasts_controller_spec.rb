@@ -40,7 +40,8 @@ RSpec.describe ForecastsController, type: :controller do
     
     context 'with address parameter' do
       it 'searches for a forecast' do
-        expect(FindOrCreateForecastService).to receive(:call).with(address: valid_address, request_ip: anything).and_return(valid_forecast)
+        expect(FindOrCreateForecastService).to receive(:call).with(address: valid_address, 
+                                                                   request_ip: anything).and_return(valid_forecast)
         get :index, params: { address: valid_address }
       end
       
@@ -55,7 +56,8 @@ RSpec.describe ForecastsController, type: :controller do
   describe 'GET #search' do
     context 'with valid address' do
       it 'searches for a forecast and renders index' do
-        expect(FindOrCreateForecastService).to receive(:call).with(address: valid_address, request_ip: anything).and_return(valid_forecast)
+        expect(FindOrCreateForecastService).to receive(:call).with(address: valid_address, 
+                                                                   request_ip: anything).and_return(valid_forecast)
         get :search, params: { address: valid_address }
         expect(response).to render_template(:index)
       end

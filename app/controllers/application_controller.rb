@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ApplicationController < ActionController::Base
   # Make temperature_units available to all controllers and views
   helper_method :temperature_units

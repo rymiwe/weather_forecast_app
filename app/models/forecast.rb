@@ -333,7 +333,8 @@ class Forecast < ApplicationRecord
               "temp_max" => is_us ? 28 : 22
             },
             "weather" => [
-              { "description" => ["clear sky", "few clouds", "scattered clouds", "light rain", "overcast clouds"].sample }
+              { "description" => ["clear sky", "few clouds", "scattered clouds", "light rain", 
+                                  "overcast clouds"].sample }
             ]
           }
         end
@@ -356,7 +357,7 @@ class Forecast < ApplicationRecord
         Rails.logger.info "Forecast.mock_forecast: Successfully created forecast ID: #{forecast.id}"
         forecast
       else
-        Rails.logger.error "Forecast.mock_forecast: Failed to save forecast: #{forecast.errors.full_messages.join(', ')}"
+        mock_forecast_save_failed(forecast)
         nil
       end
     rescue StandardError => e
@@ -364,6 +365,12 @@ class Forecast < ApplicationRecord
       Rails.logger.error e.backtrace.join("\n")
       nil
     end
+  end
+  
+  def self.mock_forecast_save_failed(forecast)
+    # Log the error but don't raise it, as we can still use the mock data
+    Rails.logger.error "Forecast.mock_forecast: Failed to save forecast: " \
+                       "#{forecast.errors.full_messages.join(', ')}"
   end
   
   # Check if the forecast is from cache and cache is still fresh

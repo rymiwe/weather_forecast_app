@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe "Error Handling Integration", type: :request do
@@ -127,7 +129,8 @@ RSpec.describe "Error Handling Integration", type: :request do
         # Create sample extended forecast data
         extended_forecast_data = [
           { 'date' => '2025-04-10', 'day_name' => 'Thursday', 'high' => 29, 'low' => 18, 'conditions' => ['Sunny'] },
-          { 'date' => '2025-04-11', 'day_name' => 'Friday', 'high' => 31, 'low' => 19, 'conditions' => ['Partly Cloudy'] },
+          { 'date' => '2025-04-11', 'day_name' => 'Friday', 'high' => 31, 'low' => 19, 
+            'conditions' => ['Partly Cloudy'] },
           { 'date' => '2025-04-12', 'day_name' => 'Saturday', 'high' => 30, 'low' => 20, 'conditions' => ['Cloudy'] }
         ]
         

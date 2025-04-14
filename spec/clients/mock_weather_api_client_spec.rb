@@ -35,7 +35,7 @@ RSpec.describe MockWeatherApiClient do
       # Check forecast data
       expect(result['forecast']).to have_key('forecastday')
       expect(result['forecast']['forecastday']).to be_an(Array)
-      expect(result['forecast']['forecastday'].length).to be > 0
+      expect(result['forecast']['forecastday'].length).to be.positive?
       
       # Check first forecast day
       first_day = result['forecast']['forecastday'].first

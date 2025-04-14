@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 namespace :screenshots do
   desc "Generate screenshots for different weather conditions"
   task generate: :environment do

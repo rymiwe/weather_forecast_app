@@ -20,7 +20,8 @@ class WeatherApiClient < ApiClientBase
     
     @weather_cache_ttl = Rails.configuration.x.weather.cache_ttl
     
-    Rails.logger.debug "WeatherApiClient initialized with mock: #{@use_mock}, cache TTL: #{@weather_cache_ttl}, API key present: #{@api_key.present?}"
+    Rails.logger.debug "WeatherApiClient initialized with mock: #{@use_mock}, " \
+                       "cache TTL: #{@weather_cache_ttl}, API key present: #{@api_key.present?}"
     
     super(api_key: @api_key, base_url: API_BASE_URL)
   end

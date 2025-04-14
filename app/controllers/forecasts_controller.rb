@@ -102,7 +102,8 @@ class ForecastsController < ApplicationController
   end
   
   def handle_forecast_not_found
-    flash.now[:alert] = "We couldn't find weather data for '#{@address}'. Please check the address or zip code and try again."
+    flash.now[:alert] = "We couldn't find weather data for '#{@address}'. " \
+                        "Please check the address or zip code and try again."
     @search_error = true
     # Don't set @search_query to maintain an empty search box after submission
     @forecast = nil

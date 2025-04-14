@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 namespace :coverage do
   desc "Print coverage report sorted by coverage percentage"
   task :report => :environment do

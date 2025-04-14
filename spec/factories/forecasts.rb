@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 FactoryBot.define do
   factory :forecast do
     address { "Seattle, WA 98101" }
@@ -6,7 +8,9 @@ FactoryBot.define do
     high_temp { 58.0 }
     low_temp { 48.0 }
     conditions { "partly cloudy" }
-    extended_forecast { '[{"date":"2025-04-08","day_name":"Tuesday","high":55,"low":46,"conditions":["partly cloudy"]}]' }
+    extended_forecast do
+      '[{"date":"2025-04-08","day_name":"Tuesday","high":55,"low":46,"conditions":["partly cloudy"]}]'
+    end
     queried_at { Time.current }
     
     trait :old do

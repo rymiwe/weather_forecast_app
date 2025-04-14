@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ForecastsHelper
   # Format weather condition strings consistently
   # Takes a condition string or array of strings and returns properly formatted condition(s)

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe "Forecasts", type: :request do
@@ -69,7 +71,8 @@ RSpec.describe "Forecasts", type: :request do
       )
       
       # Stub the forecast retrieval
-      allow(ForecastRetrievalService).to receive(:retrieve).with("123 Pine St, San Francisco, CA 94111", any_args).and_return(forecast)
+      allow(ForecastRetrievalService).to receive(:retrieve).with("123 Pine St, San Francisco, CA 94111", 
+any_args).and_return(forecast)
       
       # Stub the temperature helper
       allow_any_instance_of(TemperatureHelper).to receive(:display_temperature).and_return("18°C")

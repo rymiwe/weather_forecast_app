@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 namespace :coverage do
   desc "Find specific uncovered lines to target for testing"
   task :find_uncovered_lines => :environment do

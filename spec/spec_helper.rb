@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Percy integration temporarily disabled
 # require 'percy/capybara/rspec'
 

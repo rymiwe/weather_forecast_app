@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe AppHeaderComponent, type: :component do
@@ -5,7 +7,8 @@ RSpec.describe AppHeaderComponent, type: :component do
     render_inline(AppHeaderComponent.new)
     
     expect(page).to have_css('h1', text: 'Weather Forecast App')
-    expect(page).to have_css('p', text: 'Get accurate weather forecasts for any location worldwide with our simple weather application.')
+    expect(page).to have_css('p', 
+                             text: 'Get accurate weather forecasts for any location worldwide with our simple weather application.')
   end
   
   it "renders the header with custom title and subtitle" do
