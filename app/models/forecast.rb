@@ -378,6 +378,13 @@ class Forecast < ApplicationRecord
     @forecast_data ||= ForecastParserService.parse(extended_forecast)
   end
   
+  # Get extended forecast data for the view
+  # @return [Array] Array of daily forecast data
+  def extended_forecast_data
+    return [] unless forecast_data.present?
+    ForecastParserService.extract_daily_forecasts(forecast_data)
+  end
+  
   # Get daily forecasts
   # @return [Array] Array of daily forecasts
   def daily_forecasts
