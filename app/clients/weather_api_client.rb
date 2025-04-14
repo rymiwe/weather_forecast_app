@@ -120,10 +120,10 @@ class WeatherApiClient < ApiClientBase
   # @param address [String] The address to normalize
   # @return [String] Normalized address
   def normalize_address(address)
-    # Extract just the city and state/country if possible for more consistent cache keys
+    # Simple address normalization for stable cache keys
     if address.to_s.match?(/^\d{5}(-\d{4})?$/)
-      # For zip codes, use as-is
-      return address.to_s.strip
+      # For US zip codes, append ",us" to ensure consistent geolocation
+      return "#{address.to_s.strip},us"
     elsif match = address.to_s.match(/([a-z\s.]+),\s*([a-z]{2})/i)
       # For "City, ST" format, normalize to lowercase with standard spacing
       city, state = match[1].strip, match[2].strip
