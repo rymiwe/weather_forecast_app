@@ -19,9 +19,14 @@ class AddressPreprocessorService
     # First check if it's a simple ZIP code
     if processed =~ /^\d{5}(-\d{4})?$/
       Rails.logger.info "AddressPreprocessorService: Input is a ZIP code: '#{processed}'"
+      # Explicitly mark US ZIP codes with ",us" suffix
+      us_zip = "#{processed},us"
+      Rails.logger.info "AddressPreprocessorService: Using US ZIP code format: '#{us_zip}'"
+      
       # Even for ZIP codes, we'll geocode to get the coordinates for consistency
       begin
-        results = Geocoder.search(processed)
+        # Use the US-specific ZIP code for geocoding to ensure proper location
+        results = Geocoder.search(us_zip)
         if results.present? && results.first.present? && results.first.coordinates.present? && results.first.coordinates.all?(&:present?)
           coordinates = format_coordinates(results.first.coordinates)
           Rails.logger.info "AddressPreprocessorService: Converted ZIP code to coordinates: '#{coordinates}'"
@@ -31,8 +36,8 @@ class AddressPreprocessorService
         Rails.logger.error "AddressPreprocessorService: Error geocoding ZIP code: #{e.message}"
       end
       
-      # If geocoding failed, use the ZIP code directly as fallback
-      return processed
+      # If geocoding failed, use the US-specific ZIP code directly as fallback
+      return us_zip
     end
     
     # Use Geocoder to find location information
