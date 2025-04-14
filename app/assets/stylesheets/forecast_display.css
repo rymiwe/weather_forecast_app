@@ -73,6 +73,21 @@
   transition: transform 0.2s, box-shadow 0.2s !important;
 }
 
+/* Responsive card sizing */
+@media (max-width: 768px) {
+  .forecast-card {
+    width: calc(25% - 8px) !important; /* 4 cards per row with gap consideration */
+    min-width: 90px !important; /* Ensure cards don't get too small */
+  }
+}
+
+@media (max-width: 480px) {
+  .forecast-card {
+    width: calc(50% - 8px) !important; /* 2 cards per row on very small screens */
+    min-width: 120px !important;
+  }
+}
+
 .forecast-card:hover {
   transform: translateY(-2px) !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
