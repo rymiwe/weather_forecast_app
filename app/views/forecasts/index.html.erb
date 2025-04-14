@@ -5,34 +5,8 @@
 
 <div class="app-container">
   <div class="text-center mb-6">
-    <% if @forecast %>
-      <% 
-        # Get timezone from API if available
-        timezone = nil
-        if @forecast.forecast_data.present?
-          timezone_id = @forecast.forecast_data.dig('location', 'tz_id')
-          timezone = ActiveSupport::TimeZone[timezone_id] if timezone_id.present?
-        end
-        # Create time with proper timezone
-        local_time = timezone.present? ? Time.current.in_time_zone(timezone) : Time.current
-        # Get location name
-        location_name = @forecast.forecast_data&.dig('location', 'name') || @forecast.address
-      %>
-      <div class="text-3xl font-medium text-gray-700">
-        Weather for <%= location_name %>
-      </div>
-      <div class="text-sm text-gray-600">
-        <%= "#{local_time.strftime('%A, %B %d')} • #{local_time.strftime('%I:%M %p %Z')}" %>
-      </div>
-      <% if @forecast && @forecast.from_cache %>
-        <div class="text-xs text-gray-500 mt-1 mb-2">
-          <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Cached</span>
-        </div>
-      <% end %>
-    <% else %>
-      <div class="text-3xl font-bold text-gray-700 mb-4">Weather Forecast</div>
-      <p class="text-gray-600">Enter a location to get current conditions and forecast</p>
-    <% end %>
+    <div class="text-3xl font-bold text-gray-700 mb-4">Weather Forecast</div>
+    <p class="text-gray-600">Enter a location to get current conditions and forecast</p>
   </div>
   
   <!-- Search form -->
