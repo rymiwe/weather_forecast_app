@@ -52,7 +52,9 @@
 /* Override any Tailwind or other framework styles to ensure horizontal layout */
 .forecast-cards {
   display: flex !important;
-  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  gap: 8px !important;
   width: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -60,10 +62,9 @@
 
 /* Card styling with softer borders and shadows */
 .forecast-card {
-  flex: 1 1 0 !important;
-  width: calc(33.333% - 8px) !important;
-  max-width: calc(33.333% - 8px) !important;
-  margin: 0 4px !important;
+  flex: 0 0 auto !important;
+  width: 130px !important;
+  margin: 0 !important;
   padding: 12px !important;
   box-sizing: border-box !important;
   border-radius: 0.5rem !important;
