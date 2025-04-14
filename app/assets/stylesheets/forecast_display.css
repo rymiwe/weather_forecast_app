@@ -2,10 +2,10 @@
 
 /* Main container styling */
 .forecast-container {
-  border-radius: 0.5rem !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
-  overflow: hidden !important;
-  border: none !important;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: none;
 }
 
 /* Search form styling */
@@ -18,121 +18,125 @@
   justify-content: center;
 }
 
+.search-input-container {
+  flex: 1;
+}
+
 .search-input {
-  width: 100% !important;
-  font-size: 1rem !important;
-  padding: 0.75rem 1rem !important;
-  border-radius: 0.375rem !important;
-  border: 2px solid #cbd5e1 !important;
-  background-color: white !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  width: 100%;
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  border: 2px solid #cbd5e1;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .search-input:focus {
-  outline: none !important;
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
 }
 
 .search-button {
-  padding: 0.75rem 1.25rem !important;
-  background-color: #3b82f6 !important;
-  color: white !important;
-  font-weight: 500 !important;
-  border-radius: 0.375rem !important;
-  border: none !important;
-  cursor: pointer !important;
-  transition: background-color 0.2s !important;
+  padding: 0.75rem 1.25rem;
+  background-color: #3b82f6;
+  color: white;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 .search-button:hover {
-  background-color: #2563eb !important;
+  background-color: #2563eb;
 }
 
-/* Override any Tailwind or other framework styles to ensure horizontal layout */
-.forecast-cards {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
+/* Forecast cards layout */
+.weather-data .forecast-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 /* Card styling with softer borders and shadows */
-.forecast-card {
-  flex: 0 0 auto !important;
-  width: 130px !important;
-  margin: 0 !important;
-  padding: 12px !important;
-  box-sizing: border-box !important;
-  border-radius: 0.5rem !important;
-  border: 1px solid #d1d5db !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
-  transition: transform 0.2s, box-shadow 0.2s !important;
+.weather-data .forecast-card {
+  flex: 0 0 auto;
+  width: 130px;
+  margin: 0;
+  padding: 12px;
+  box-sizing: border-box;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 /* Responsive card sizing */
 @media (max-width: 768px) {
-  .forecast-card {
-    width: calc(25% - 8px) !important; /* 4 cards per row with gap consideration */
-    min-width: 90px !important; /* Ensure cards don't get too small */
+  .weather-data .forecast-card {
+    width: calc(25% - 8px); /* 4 cards per row with gap consideration */
+    min-width: 90px; /* Ensure cards don't get too small */
   }
 }
 
 @media (max-width: 480px) {
-  .forecast-card {
-    width: calc(50% - 8px) !important; /* 2 cards per row on very small screens */
-    min-width: 120px !important;
+  .weather-data .forecast-card {
+    width: calc(50% - 8px); /* 2 cards per row on very small screens */
+    min-width: 120px;
   }
 }
 
-.forecast-card:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+.weather-data .forecast-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Weather container styling */
 .weather-data {
-  background-color: #f9fafb !important;
-  border-radius: 0 0 0.5rem 0.5rem !important;
-  padding: 1rem !important;
+  background-color: #f9fafb;
+  border-radius: 0 0 0.5rem 0.5rem;
+  padding: 1rem;
 }
 
 /* Control image sizing within forecast icons */
-.forecast-icon {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  height: 45px !important; 
-  margin: 4px auto !important;
+.forecast-card .forecast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 45px;
+  margin: 4px auto;
 }
 
 .forecast-icon img {
-  max-width: 100% !important;
-  height: auto !important;
-  max-height: 35px !important;
-  object-fit: contain !important;
+  max-width: 100%;
+  height: auto;
+  max-height: 35px;
+  object-fit: contain;
 }
 
 /* Ensure readable text size */
 .forecast-card .text-xs {
-  font-size: 0.7rem !important;
+  font-size: 0.7rem;
 }
 
 .forecast-card .text-sm {
-  font-size: 0.8rem !important;
+  font-size: 0.8rem;
 }
 
 /* Details section styling */
 .details-section {
-  border-top: 1px solid #e5e7eb !important;
+  border-top: 1px solid #e5e7eb;
 }
 
 .details-content {
-  background-color: #f9fafb !important;
-  border-top: 1px solid #e5e7eb !important;
+  background-color: #f9fafb;
+  border-top: 1px solid #e5e7eb;
 }
 
 /* Details toggle button styling */
