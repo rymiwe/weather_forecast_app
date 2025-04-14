@@ -16,6 +16,7 @@ Rails.application.routes.draw do
   resources :forecasts, only: [:index, :show] do
     member do
       post 'set_units'
+      post 'refresh_cache' # Add a route for refreshing the cache
     end
   end
 end

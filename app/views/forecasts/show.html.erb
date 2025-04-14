@@ -149,6 +149,16 @@
               <td class="p-1 border border-gray-300 bg-gray-100">Timezone Offset</td>
               <td class="p-1 border border-gray-300"><%= timezone_offset %> seconds (UTC<%= timezone_string %>)</td>
             </tr>
+            <tr>
+              <td class="p-1 border border-gray-300 bg-gray-100">Actions</td>
+              <td class="p-1 border border-gray-300">
+                <%= button_to "Refresh Data", refresh_cache_forecast_path(@forecast), 
+                    method: :post,
+                    form: { class: "inline-block" },
+                    class: "bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium py-1 px-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" %>
+                <span class="text-xs text-gray-500 ml-2">Forces a fresh API call</span>
+              </td>
+            </tr>
           </table>
         </div>
         

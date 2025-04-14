@@ -32,6 +32,39 @@ class ForecastsController < ApplicationController
     render :index unless performed?
   end
   
+  # Refreshes the cache for a forecast
+  def refresh_cache
+    @forecast = Forecast.find_by(id: params[:id])
+    
+    if @forecast.nil?
+      flash[:alert] = "Forecast not found"
+      redirect_to forecasts_path
+      return
+    end
+    
+    # Get address to use for re-querying
+    address = @forecast.address
+    
+    # Delete the existing forecast to force a fresh API call
+    @forecast.destroy
+    
+    # Get fresh forecast data
+    @forecast = FindOrCreateForecastService.call(address: address, request_ip: request.remote_ip)
+    
+    if @forecast.nil?
+      flash[:alert] = "Unable to refresh forecast data. Please try again."
+      redirect_to forecasts_path
+      return
+    end
+    
+    flash[:notice] = "Forecast data refreshed successfully!"
+    redirect_to forecast_path(@forecast)
+  rescue StandardError => e
+    Rails.logger.error "Error refreshing forecast: #{e.message}"
+    flash[:alert] = "Error refreshing forecast: #{e.message}"
+    redirect_to forecasts_path
+  end
+  
   private
   
   # Shared method for searching forecasts
