@@ -3,47 +3,44 @@ import { Controller } from "@hotwired/stimulus"
 // Controls the weather card interactive features
 export default class extends Controller {
   static targets = ["temperature", "details"]
+  static classes = ["visible", "hidden", "loading"]
   
   connect() {
-    // Log connection for debugging
-    console.log("Weather card controller connected")
-    
-    // Apply any animations or initial state
-    this.initializeCard()
+    // Initialize the card with proper classes for animation
+    this.element.classList.add("transition-opacity")
+    this.animateIn()
   }
   
-  // Initialize the card with animations
-  initializeCard() {
-    // Add fade-in animation
-    this.element.classList.add("transition-opacity")
-    this.element.style.opacity = "0"
-    
-    // Delay slightly to ensure DOM is ready
+  // Animate the card in using classes
+  animateIn() {
+    // Apply visible class after a brief delay to ensure DOM is ready
     setTimeout(() => {
-      this.element.style.opacity = "1"
+      this.element.classList.add(...this.visibleClasses)
+      this.element.classList.remove(...this.loadingClasses)
     }, 10)
   }
   
-  // Toggle additional details visibility
+  // Toggle additional details visibility with accessibility support
   toggleDetails(event) {
-    if (this.hasDetailsTarget) {
-      this.detailsTarget.classList.toggle("hidden")
+    if (!this.hasDetailsTarget) return
+    
+    const isExpanded = !this.detailsTarget.classList.contains(...this.hiddenClasses)
+    
+    // Toggle visibility
+    this.detailsTarget.classList.toggle(...this.hiddenClasses)
+    
+    // Update ARIA attributes for accessibility
+    if (event.currentTarget.hasAttribute("aria-expanded")) {
+      event.currentTarget.setAttribute("aria-expanded", !isExpanded)
     }
   }
   
-  // Method to handle unit conversion requests
-  // Called via data-action from the view
-  updateUnits(event) {
-    // This would be triggered when the user requests a unit change
-    const unitSelector = event.currentTarget
-    const newUnit = unitSelector.value
-    
-    // Dispatch a custom event that parent controllers can listen for
-    const changeEvent = new CustomEvent("units-changed", { 
-      detail: { unit: newUnit },
-      bubbles: true
-    })
-    
-    this.element.dispatchEvent(changeEvent)
+  // Refresh the card data via Turbo
+  refresh(event) {
+    const frame = this.element.closest("turbo-frame")
+    if (frame) {
+      this.element.classList.add(...this.loadingClasses)
+      frame.reload()
+    }
   }
 }

@@ -7,7 +7,7 @@ A Ruby on Rails 7 application that provides weather forecasts based on user-prov
 ## Features
 
 - **Address-based Weather Search**: Get weather forecasts for any address or zip code
-- **Detailed Forecasts**: View current conditions, temperatures, and 5-day forecasts
+- **Detailed Forecasts**: View current conditions, temperatures, and 7-day forecasts
 - **Intelligent Caching**: Redis-backed caching system with configurable expiration
 - **Smart Temperature Units**: Automatically selects Fahrenheit or Celsius based on location
 - **Responsive Design**: Mobile-friendly interface using Tailwind CSS
@@ -18,22 +18,25 @@ A Ruby on Rails 7 application that provides weather forecasts based on user-prov
 
 ## Technical Stack
 
-- Ruby 3.0.6
+- Ruby 3.2.2
 - Rails 7.1.5.1
-- PostgreSQL database
+- PostgreSQL database (production)
+- SQLite (development/test)
 - Redis for caching
 - Tailwind CSS for styling
 - Hotwire/Turbo for dynamic page updates
+- Stimulus for JavaScript behaviors
 - ViewComponents for modular UI
 - WeatherAPI.com for weather data
+- RSpec for testing
 
 ## Setup Instructions
 
 ### Prerequisites
 
-- Ruby 3.0.6 or newer
-- PostgreSQL
-- Redis (optional, falls back to memory store)
+- Ruby 3.2.2 or newer
+- PostgreSQL (production)
+- Redis (recommended for production)
 - Node.js and Yarn (for Tailwind CSS)
 
 ### Installation
@@ -56,21 +59,21 @@ A Ruby on Rails 7 application that provides weather forecasts based on user-prov
    ```
 
 4. Configure API key and application settings:
-   - Copy the example configuration file: `cp config/env.yml.example config/env.yml`
-   - Edit `config/env.yml` and replace `your_api_key_here` with your WeatherAPI.com API key
+   - Set the following environment variables:
+     ```
+     WEATHERAPI_KEY=your_api_key_here
+     REDIS_URL=redis://localhost:6379/1 # Optional for development
+     WEATHER_CACHE_TTL=30 # Cache time in minutes
+     ```
    - You can get a free API key by:
      1. Register at https://www.weatherapi.com/
      2. After registering, go to your API keys section
      3. Copy your API key (or create a new one)
 
-5. Start Redis (optional):
+5. Start Redis (optional for development, required for production):
    ```
-   # On Windows (WSL or Docker recommended)
    # Using Docker:
    docker run --name redis -p 6379:6379 -d redis
-   
-   # Set environment variable
-   $env:REDIS_URL = "redis://localhost:6379/1"
    ```
 
 6. Start the Rails server:
@@ -80,169 +83,128 @@ A Ruby on Rails 7 application that provides weather forecasts based on user-prov
 
 7. Access the application at http://localhost:3000
 
-## Caching Implementation
+## Deployment to Heroku
 
-The application uses a multi-level caching strategy:
+1. Create a new Heroku application:
+   ```
+   heroku create your-app-name
+   ```
 
-### 1. Database caching
+2. Add Redis to your application:
+   ```
+   heroku addons:create heroku-redis:hobby-dev
+   ```
 
-- Weather data is stored in the database with timestamped queries
-- The `Forecast` model includes methods to determine if data is fresh or stale
-- This provides persistence across application restarts
+3. Configure environment variables:
+   ```
+   heroku config:set WEATHERAPI_KEY=your_api_key_here
+   heroku config:set RAILS_MASTER_KEY=`cat config/master.key`
+   heroku config:set WEATHER_CACHE_TTL=30
+   ```
 
-### 2. Redis caching
+4. Deploy your application:
+   ```
+   git push heroku main
+   ```
 
-- In production, Redis is used as the primary cache store
-- Cache keys are structured as `weather_forecast:#{zip_code}`
-- Cache duration is configurable via `WEATHER_CACHE_DURATION_MINUTES` environment variable
+5. Run database migrations:
+   ```
+   heroku run rails db:migrate
+   ```
 
-Example Redis cache configuration:
+## Caching Strategy
+
+The application implements a multi-level caching strategy to minimize API calls and improve performance:
+
+### 1. Redis Cache Implementation
+
+The application uses Redis as the primary cache store in production, with a fallback to memory store in development:
 
 ```ruby
 # config/environments/production.rb
-config.cache_store = :redis_cache_store, { 
-  url: ENV.fetch('REDIS_URL') { 'redis://localhost:6379/1' },
-  namespace: 'weather_app',
-  expires_in: Rails.configuration.x.weather.cache_duration
+config.cache_store = :redis_cache_store, {
+  url: ENV.fetch("REDIS_URL") { "redis://localhost:6379/1" },
+  expires_in: ENV.fetch("WEATHER_CACHE_TTL", 30).to_i.minutes
 }
 ```
 
-### 3. Memory fallback
+### 2. Cache Key Structure
 
-- The application gracefully falls back to memory cache if Redis is unavailable
-- This ensures the application works in development without Redis
-
-```ruby
-# config/environments/development.rb
-if ENV['REDIS_URL'].present?
-  config.cache_store = :redis_cache_store, { 
-    url: ENV['REDIS_URL'],
-    namespace: "weather_app_dev",
-    expires_in: Rails.configuration.weather_cache_duration
-  }
-else
-  config.cache_store = :memory_store, { size: 64.megabytes }
-end
-```
-
-## Application Architecture
-
-### MVC and Service Objects
-
-The application follows Rails MVC architecture with additional patterns:
-
-1. **Models**: Handle data storage, validation, and business logic
-2. **Views**: Use ViewComponents for reusable UI elements
-3. **Controllers**: Coordinate requests and delegate complex operations to services
-4. **Service Objects**: Handle complex business logic and external API interactions
-
-Example service object pattern:
+Cache keys are constructed to ensure uniqueness while maintaining consistency for identical locations:
 
 ```ruby
-# app/services/find_or_create_forecast_service.rb
-class FindOrCreateForecastService < ServiceBase
-  def initialize(address:, request_ip:)
-    @address = address
-    @request_ip = request_ip
-  end
-  
-  def call
-    # Service implementation
-  end
-end
-
-# Using the service:
-forecast = FindOrCreateForecastService.call(address: params[:address], request_ip: request.remote_ip)
+# Example cache key format
+cache_key = "weather:#{normalized_address}"
 ```
 
-### ViewComponents
+The normalized address ensures that slight variations in user input (like "New York" vs "New York, NY") map to the same cache entry.
 
-UI elements are encapsulated in ViewComponents for reusability and testability:
+### 3. Cache TTL Strategy
 
-```ruby
-# app/components/weather_card_component.rb
-class WeatherCardComponent < ViewComponent::Base
-  def initialize(forecast:, units:, day_data: nil)
-    @forecast = forecast
-    @units = units
-    @day_data = day_data
-  end
-  
-  # Component methods
-end
+- Default TTL is 30 minutes but is configurable via the `WEATHER_CACHE_TTL` environment variable
+- Users can manually force a refresh via the UI for immediate updates
+- API errors don't invalidate the cache, protecting against API downtime
 
-# In views:
-<%= render WeatherCardComponent.new(forecast: @forecast, units: @units) %>
-```
+## Hotwire/Turbo Implementation
 
-### Hotwire/Turbo Integration
+The application leverages Rails 7's Hotwire/Turbo and Stimulus for a dynamic user experience:
 
-The application uses Turbo Frames and Streams for dynamic updates without full page refreshes:
+### Turbo Frames
+
+Search results are delivered via Turbo Frames, allowing for partial page updates without full-page reloads:
 
 ```erb
-<turbo-frame id="<%= dom_id(@forecast) %>_current">
-  <!-- Frame content -->
-</turbo-frame>
+<%= turbo_frame_tag "forecast_results" do %>
+  <%= render "forecast_content" if @forecast %>
+<% end %>
 ```
 
-## Rails 7 Best Practices
+### Stimulus Controllers
 
-This application follows these Rails 7 best practices:
+The application uses Stimulus controllers for interactive behaviors:
 
-1. **MVC with Service Objects**: Models, controllers, and views have clear responsibilities; complex logic is extracted to service objects.
+1. **Toggle Controller**: Handles expanding/collapsing the technical details section
+2. **Search Form Controller**: Provides client-side validation with accessibility
+3. **Weather Card Controller**: Manages dynamic card updates and interactions
 
-2. **ViewComponents for UI**: Reusable UI elements are encapsulated in ViewComponents, improving organization and testability.
+## Testing Strategy
 
-3. **Standard Rails with Hotwire**: The application builds on standard Rails patterns, enhanced with Hotwire for dynamic interactions.
+The application uses RSpec for comprehensive testing across all layers:
 
-4. **No Inline Styles/Scripts**: All styling is in Tailwind classes, with JavaScript in Stimulus controllers.
+1. **Model Tests**: Test data relationships, validations, and business logic
+2. **Request Specs**: Test API endpoints and controller actions
+3. **System Tests**: Use Capybara for end-to-end testing of user workflows
+4. **VCR Integration**: Records and plays back API responses to enable offline testing
 
-5. **Comprehensive Testing**: Models, controllers, services, and ViewComponents have thorough test coverage.
-
-6. **Optimized Database Queries**: Uses eager loading and proper indexing for efficient data access.
-
-7. **Security Best Practices**: Implements strong parameters, CSRF protection, and secure API handling.
-
-8. **dom_id for Hotwire**: Uses `dom_id` helpers for consistent HTML IDs in Turbo frames.
-
-9. **Structured Turbo Frames**: Carefully designed frame hierarchy for targeted updates.
-
-10. **Tailwind Best Practices**: Uses component classes for consistency and maintainability.
-
-11. **Accessibility Support**: Implements proper ARIA attributes and manages focus for dynamic updates.
-
-12. **Performance Optimization**: Minimizes database queries, uses Redis caching, and optimizes asset delivery.
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `REDIS_URL` | Redis connection URL | `redis://localhost:6379/1` |
-| `WEATHER_CACHE_DURATION_MINUTES` | Weather cache duration in minutes | `30` |
-| `WEATHERAPI_KEY` | WeatherAPI.com API key | None (Required) |
-| `OPENWEATHERMAP_API_KEY` | OpenWeatherMap API key (Legacy) | None (Optional) |
-| `USE_MOCK_WEATHER_CLIENT` | Use mock data for development/testing | `false` |
-
-## Weather API Implementation
-
-The application uses WeatherAPI.com as the weather data provider, which offers several advantages:
-
-1. **Single API Call**: Weather data is retrieved with a single API call that handles both location resolution and weather data retrieval, simplifying the implementation.
-
-2. **Flexible Location Input**: The API accepts various location formats including city names, zip codes, and coordinates without requiring separate geocoding.
-
-3. **Consistent Results**: Location inputs are normalized, ensuring consistent results regardless of case or format (e.g., "portland, or" and "Portland, OR" yield the same results).
-
-4. **Comprehensive Data**: Includes current conditions, forecasts, and astronomical data in a single response.
-
-5. **Generous Free Tier**: The free tier includes 1,000,000 calls per month, more than adequate for development and small production deployments.
-
-The implementation follows a clean separation of concerns:
-- `WeatherApiClient` handles the API integration with simple, focused methods
-- `MockWeatherApiClient` provides deterministic test data
-- `FindOrCreateForecastService` orchestrates the data retrieval and storage
-
-## Running Tests
+Run the test suite with:
 
 ```
 bundle exec rspec
+```
+
+## Architecture Best Practices
+
+The application is built following these architectural best practices:
+
+1. **MVC with Service Objects**: Core business logic is encapsulated in service objects
+2. **ViewComponents**: UI components are isolated in ViewComponents for better testing and reuse
+3. **Progressive Enhancement**: Basic functionality works without JavaScript, enhanced with Hotwire
+4. **Separation of Concerns**: Styles in CSS, behavior in Stimulus controllers
+5. **Comprehensive Testing**: Tests at multiple levels ensure code quality
+6. **Database Optimization**: Proper indexing and query optimization
+7. **Security Best Practices**: Strong parameters, input validation, and XSS protection
+8. **Consistent DOM IDs**: Used throughout for Hotwire compatibility
+9. **Accessible UI**: ARIA attributes, keyboard navigation, and screen reader support
+10. **Performance Optimization**: Minimal frames, optimized controllers, responsive design
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin feature/my-new-feature`)
+5. Create a new Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

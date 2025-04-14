@@ -2,62 +2,68 @@ import { Controller } from "@hotwired/stimulus"
 
 // Enhances the search form with validation and auto-completion
 export default class extends Controller {
-  static targets = ["input"]
+  static targets = ["input", "error"]
+  static classes = ["invalid", "errorVisible"]
   
   connect() {
-    // Focus the input field when controller connects
-    if (this.hasInputTarget) {
+    // Focus the input field when controller connects if not on mobile
+    if (this.hasInputTarget && window.innerWidth > 768) {
       this.inputTarget.focus()
     }
     
     // Enhance form with validation
-    this.element.addEventListener("submit", this.validateForm.bind(this))
+    this.element.addEventListener("submit", this.validate.bind(this))
   }
   
   // Validate the form before submission
-  validateForm(event) {
-    if (this.hasInputTarget && this.inputTarget.value.trim() === "") {
+  validate(event) {
+    if (!this.hasInputTarget) return
+    
+    const inputValue = this.inputTarget.value.trim()
+    
+    if (inputValue === "") {
       event.preventDefault()
-      
-      // Add error styling
-      this.inputTarget.classList.add("border-red-500", "ring-1", "ring-red-500")
-      
-      // Create error message if it doesn't exist
-      if (!this.errorMessage) {
-        this.errorMessage = document.createElement("p")
-        this.errorMessage.classList.add("text-red-500", "text-sm", "mt-1")
-        this.errorMessage.setAttribute("id", "location-error")
-        this.errorMessage.textContent = "Please enter a location"
-        this.inputTarget.setAttribute("aria-invalid", "true")
-        this.inputTarget.setAttribute("aria-describedby", "location-error")
-        this.inputTarget.after(this.errorMessage)
-      }
-      
-      // Focus the input for accessibility
-      this.inputTarget.focus()
+      this.showError("Please enter a location")
     } else {
-      // Remove error styling if input is valid
-      this.removeError()
+      this.hideError()
     }
   }
   
-  // Handle input changes
+  // Clear error when user starts typing
   inputChanged() {
-    if (this.hasInputTarget && this.inputTarget.value.trim() !== "") {
-      this.removeError()
+    if (this.inputTarget.value.trim() !== "") {
+      this.hideError()
     }
   }
   
-  // Remove error styling and message
-  removeError() {
-    if (this.hasInputTarget) {
-      this.inputTarget.classList.remove("border-red-500", "ring-1", "ring-red-500")
-      this.inputTarget.removeAttribute("aria-invalid")
+  showError(message) {
+    // Add invalid classes to input
+    this.inputTarget.classList.add(...this.invalidClasses)
+    this.inputTarget.setAttribute("aria-invalid", "true")
+    
+    // Show error message
+    if (this.hasErrorTarget) {
+      this.errorTarget.textContent = message
+      this.errorTarget.classList.add(...this.errorVisibleClasses)
+      this.errorTarget.removeAttribute("hidden")
       
-      if (this.errorMessage) {
-        this.errorMessage.remove()
-        this.errorMessage = null
-      }
+      // Announce error to screen readers
+      this.errorTarget.setAttribute("role", "alert")
+    }
+  }
+  
+  hideError() {
+    // Remove invalid classes from input
+    if (this.hasInputTarget) {
+      this.inputTarget.classList.remove(...this.invalidClasses)
+      this.inputTarget.setAttribute("aria-invalid", "false")
+    }
+    
+    // Hide error message
+    if (this.hasErrorTarget) {
+      this.errorTarget.classList.remove(...this.errorVisibleClasses)
+      this.errorTarget.setAttribute("hidden", "")
+      this.errorTarget.removeAttribute("role")
     }
   }
 }

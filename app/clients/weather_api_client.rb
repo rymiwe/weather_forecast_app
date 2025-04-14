@@ -7,18 +7,16 @@ require_relative 'api_client_base'
 # Provides simplified single-call weather data with automatic location resolution
 class WeatherApiClient < ApiClientBase
   API_BASE_URL = 'https://api.weatherapi.com'.freeze
+  FORECAST_DAYS = 7
+  DEFAULT_CACHE_TTL = 30.minutes
 
   # Initialize with the API key from environment
   def initialize
     @api_key = ENV['WEATHERAPI_KEY']
+    @use_mock = use_mock_client?
+    @weather_cache_ttl = Rails.configuration.x.weather.cache_ttl || DEFAULT_CACHE_TTL
 
-    # Check both Rails configuration and environment variable for maximum compatibility
-    @use_mock = Rails.configuration.x.weather.use_mock_client || ENV['USE_MOCK_WEATHER_CLIENT'] == 'true'
-
-    @weather_cache_ttl = Rails.configuration.x.weather.cache_ttl
-
-    Rails.logger.debug "WeatherApiClient initialized with mock: #{@use_mock}, " \
-                       "cache TTL: #{@weather_cache_ttl}, API key present: #{@api_key.present?}"
+    log_initialization
 
     super(api_key: @api_key, base_url: API_BASE_URL)
   end
@@ -29,63 +27,76 @@ class WeatherApiClient < ApiClientBase
   def get_weather(address:)
     Rails.logger.info "WeatherApiClient: Getting weather for address: #{address}"
 
-    # In production with no API key, return nil instead of showing mock data
+    return nil if missing_api_key_in_production?
+    return mock_weather(address) if @use_mock
+
+    fetch_or_cache_weather(address)
+  end
+
+  private
+
+  def use_mock_client?
+    Rails.configuration.x.weather.use_mock_client || 
+      ENV['USE_MOCK_WEATHER_CLIENT'] == 'true'
+  end
+
+  def log_initialization
+    Rails.logger.debug "WeatherApiClient initialized with mock: #{@use_mock}, " \
+                       "cache TTL: #{@weather_cache_ttl}, API key present: #{@api_key.present?}"
+  end
+
+  def missing_api_key_in_production?
     if Rails.env.production? && @api_key.blank?
       Rails.logger.error "WeatherApiClient: Cannot fetch weather in production without API key"
-      return nil
+      return true
     end
+    false
+  end
 
-    # Fall back to mock in development/test if configured
-    if @use_mock
-      Rails.logger.info "WeatherApiClient: Using MockWeatherApiClient for #{address}"
-      return MockWeatherApiClient.instance.get_weather(address: address)
-    end
+  def mock_weather(address)
+    Rails.logger.info "WeatherApiClient: Using MockWeatherApiClient for #{address}"
+    MockWeatherApiClient.instance.get_weather(address: address)
+  end
 
-    # Normalize the address for consistent caching
+  def fetch_or_cache_weather(address)
     normalized_address = normalize_address(address)
     cache_key = "weather:#{normalized_address}"
 
-    # Try to fetch from cache first
     Rails.cache.fetch(cache_key, expires_in: @weather_cache_ttl) do
       Rails.logger.info "WeatherApiClient: Cache miss, fetching from API for #{normalized_address}"
-
-      # Make a single API call to get everything we need
-      begin
-        response = real_get_weather(address)
-      rescue StandardError => e
-        Rails.logger.error "WeatherApiClient: Error fetching weather for #{address}: #{e.message}"
-        return nil
-      end
-
-      Rails.logger.info "WeatherApiClient: API response: #{response ? 'Success' : 'Nil'}"
-
-      if response.nil?
-        Rails.logger.warn "WeatherApiClient: No response from API for #{address}"
-        return nil
-      end
-
-      # Transform the response to match our app's expected structure
-      transform_response(response)
+      fetch_from_api(address)
     end
+  end
+
+  def fetch_from_api(address)
+    begin
+      response = real_get_weather(address)
+    rescue StandardError => e
+      Rails.logger.error "WeatherApiClient: Error fetching weather for #{address}: #{e.message}"
+      return nil
+    end
+
+    Rails.logger.info "WeatherApiClient: API response: #{response ? 'Success' : 'Nil'}"
+
+    if response.nil?
+      Rails.logger.warn "WeatherApiClient: No response from API for #{address}"
+      return nil
+    end
+
+    transform_response(response)
   end
 
   # Create a sample forecast with mock data
   def real_get_weather(address)
     Rails.logger.info "WeatherApiClient#real_get_weather: Starting API request for #{address}"
 
-    # Ensure US ZIP codes are properly identified
-    query = address
-    if address.to_s.match?(/^\d{5}(-\d{4})?$/)
-      # For US ZIP codes, append US to ensure proper geo-location
-      query = "#{address},us"
-      Rails.logger.info "WeatherApiClient: US ZIP code detected, modified query to: #{query}"
-    end
-
+    query = format_address_query(address)
+    
     # Build the API URL - use the proper v1 path
     endpoint = "/v1/forecast.json"
     params = {
       q: query,
-      days: 7, # WeatherAPI.com free plan allows up to 7 days
+      days: FORECAST_DAYS,
       aqi: 'yes', # Include air quality data
       key: @api_key # WeatherAPI.com uses 'key' parameter, not 'appid'
     }
@@ -94,8 +105,18 @@ class WeatherApiClient < ApiClientBase
 
     request(endpoint, params, headers)
   end
-
-  private
+  
+  def format_address_query(address)
+    # Ensure US ZIP codes are properly identified
+    if address.to_s.match?(/^\d{5}(-\d{4})?$/)
+      # For US ZIP codes, append US to ensure proper geo-location
+      query = "#{address},us"
+      Rails.logger.info "WeatherApiClient: US ZIP code detected, modified query to: #{query}"
+      return query
+    end
+    
+    address
+  end
 
   # Normalize address for consistent caching
   # @param address [String] The address to normalize

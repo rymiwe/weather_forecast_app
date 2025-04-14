@@ -12,11 +12,14 @@ Rails.application.routes.draw do
   get 'forecasts/search', to: 'forecasts#search', as: :search_forecasts
   post 'forecasts/search', to: 'forecasts#search'
   
+  # Add Turbo-compatible refresh route
+  get 'forecasts/refresh', to: 'forecasts#refresh', as: :refresh_forecast
+  
   # Only define the routes we need (index and show)
   resources :forecasts, only: [:index] do
     member do
       post 'set_units'
-      post 'refresh_cache' # Add a route for refreshing the cache
+      post 'refresh_cache' # Legacy route for refreshing the cache
     end
   end
 end

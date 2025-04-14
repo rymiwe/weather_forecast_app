@@ -60,6 +60,80 @@ RSpec.describe WeatherApiClient do
         expect { client.get_weather(address: address) }.to raise_error(ApiClientBase::ConfigurationError)
       end
     end
+    
+    context 'when caching is enabled' do
+      let(:cache_key) { "weather:#{address.parameterize}" }
+      
+      before do
+        allow(client).to receive(:use_mock?).and_return(false)
+        allow(client).to receive(:fetch_or_cache_weather).with(address).and_call_original
+        allow(Rails.cache).to receive(:fetch).with(cache_key, any_args).and_return(mock_response)
+      end
+      
+      it 'uses Rails.cache.fetch with the correct key' do
+        expect(Rails.cache).to receive(:fetch).with(cache_key, any_args)
+        allow(client).to receive(:real_get_weather).and_return(mock_response)
+        client.get_weather(address: address)
+      end
+      
+      it 'logs cache operations' do
+        expect(Rails.logger).to receive(:info).with(/Getting weather for address/)
+        allow(client).to receive(:real_get_weather).and_return(mock_response)
+        client.get_weather(address: address)
+      end
+    end
+  end
+  
+  describe '#make_api_request' do
+    let(:instance) { described_class.new }
+    let(:faraday_connection) { instance_double(Faraday::Connection) }
+    let(:faraday_response) { instance_double(Faraday::Response, status: 200, body: mock_response.to_json) }
+    let(:api_url) { "#{WeatherApiClient::API_BASE_URL}/forecast.json" }
+    
+    before do
+      allow(described_class).to receive(:new).and_return(instance)
+      allow(instance).to receive(:api_key).and_return(api_key)
+      allow(Faraday).to receive(:new).and_return(faraday_connection)
+      allow(faraday_connection).to receive(:get).and_return(faraday_response)
+    end
+    
+    it 'makes a GET request to the correct API endpoint' do
+      expect(Faraday).to receive(:new).with(url: WeatherApiClient::API_BASE_URL)
+      expect(faraday_connection).to receive(:get).with(
+        'forecast.json',
+        hash_including(key: api_key, q: address, days: 7)
+      )
+      
+      instance.send(:make_api_request, endpoint: 'forecast.json', params: { q: address, days: 7 })
+    end
+    
+    context 'when API request fails' do
+      let(:error_response) { instance_double(Faraday::Response, status: 400, body: { error: { message: "Invalid request" } }.to_json) }
+      
+      before do
+        allow(faraday_connection).to receive(:get).and_return(error_response)
+      end
+      
+      it 'returns the error data with status' do
+        expect(Rails.logger).to receive(:error).with(/API request failed/)
+        result = instance.send(:make_api_request, endpoint: 'forecast.json', params: { q: address })
+        expect(result).to include(:error)
+        expect(result[:status]).to eq(400)
+      end
+    end
+    
+    context 'when network error occurs' do
+      before do
+        allow(faraday_connection).to receive(:get).and_raise(Faraday::ConnectionFailed.new("Connection refused"))
+      end
+      
+      it 'returns an error response' do
+        expect(Rails.logger).to receive(:error).with(/Network error/)
+        result = instance.send(:make_api_request, endpoint: 'forecast.json', params: { q: address })
+        expect(result).to include(:error)
+        expect(result[:error]).to include("Connection failed")
+      end
+    end
   end
 
   describe 'response processing' do
@@ -84,6 +158,15 @@ RSpec.describe WeatherApiClient do
         expect(result[:conditions]).to eq(weather_data['current']['condition']['text'])
         expect(result[:condition_code]).to eq(weather_data['current']['condition']['code'])
       end
+      
+      it 'handles missing current data gracefully' do
+        incomplete_data = {}
+        allow(instance).to receive(:current_conditions).and_call_original
+        
+        result = instance.send(:current_conditions, incomplete_data)
+        expect(result).to be_a(Hash)
+        expect(result[:conditions]).to be_nil
+      end
     end
 
     describe '#extract_daily_forecasts' do
@@ -102,6 +185,29 @@ RSpec.describe WeatherApiClient do
         expect(first_day[:high_temp_c]).to eq(weather_data['forecast']['forecastday'][0]['day']['maxtemp_c'])
         expect(first_day[:low_temp_c]).to eq(weather_data['forecast']['forecastday'][0]['day']['mintemp_c'])
         expect(first_day[:condition]).to eq(weather_data['forecast']['forecastday'][0]['day']['condition'])
+      end
+      
+      it 'returns an empty array when forecast data is missing' do
+        incomplete_data = {}
+        result = instance.send(:extract_daily_forecasts, incomplete_data)
+        expect(result).to eq([])
+      end
+    end
+    
+    describe '#format_weather_data' do
+      let(:weather_data) { mock_weather_api_response('Test City', region: 'Test Region', days: 3) }
+      
+      it 'combines location, current, and forecast data' do
+        result = instance.send(:format_weather_data, weather_data)
+        
+        expect(result).to be_a(Hash)
+        expect(result[:location]).to include(
+          name: 'Test City',
+          region: 'Test Region'
+        )
+        expect(result[:current]).to include(:temp_c, :temp_f, :conditions)
+        expect(result[:forecasts]).to be_an(Array)
+        expect(result[:forecasts].length).to eq(3)
       end
     end
   end

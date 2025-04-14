@@ -3,7 +3,7 @@
   <%= @forecast ? "Weather for #{@forecast.forecast_data&.dig('location', 'name') || @forecast.address}" : "Weather Forecast" %>
 <% end %>
 
-<div class="app-container bg-gray-200">
+<div class="app-container">
   <div class="text-center mb-6">
     <% if @forecast %>
       <% 
@@ -30,199 +30,45 @@
         </div>
       <% end %>
     <% else %>
-      <div class="text-2xl font-bold">Your Weather</div>
+      <div class="text-3xl font-bold text-gray-700 mb-4">Weather Forecast</div>
+      <p class="text-gray-600">Enter a location to get current conditions and forecast</p>
     <% end %>
   </div>
   
   <!-- Search form -->
-  <div class="search-container">
-    <%= form_with url: search_forecasts_path, method: :get, class: "search-form" do |form| %>
+  <div class="search-container max-w-lg mx-auto mb-8">
+    <%= form_with url: search_forecasts_path, method: :get, 
+                  class: "search-form", 
+                  data: { 
+                    controller: "search-form",
+                    action: "submit->search-form#validate input->search-form#inputChanged",
+                    search_form_invalid_class: "border-red-500 ring-1 ring-red-500",
+                    search_form_error_visible_class: "block"
+                  } do |form| %>
       <div class="search-input-container">
         <%= form.text_field :address, 
             value: @search_query, 
             class: "search-input", 
-            placeholder: "Enter city, zip code, or address" %>
+            placeholder: "Enter city, zip code, or address",
+            data: { search_form_target: "input" },
+            aria: { required: true } %>
+        <p class="text-red-500 text-sm mt-1 hidden" 
+           data-search-form-target="error" 
+           hidden></p>
       </div>
       <%= form.submit "Get Forecast", 
           name: "button", 
-          class: "search-button" %>
+          class: "search-button hover:bg-blue-700 transition-colors" %>
     <% end %>
   </div>
 
-  <% if @forecast %>
-    <div class="forecast-container rounded-lg overflow-hidden shadow-md">
-      <div class="p-4 pb-0 bg-white border-b border-gray-300">
-        <h2 class="text-2xl font-medium text-gray-700 mb-0">
-          <% if @forecast.present? %>
-            <% location_name = @forecast.forecast_data&.dig('location', 'name') %>
-            <% location_region = @forecast.forecast_data&.dig('location', 'region') %>
-            <% location_country = @forecast.forecast_data&.dig('location', 'country') %>
-            
-            <% if location_name.present? %>
-              <span class="flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <%= location_name %><%=
-              if location_region.present?
-                ", " + location_region
-              end
-              %><%=
-              if location_country.present? && location_country != "United States of America"
-                ", " + location_country
-              end
-              %>
-              </span>
-            <% else %>
-              <span class="flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <%= @forecast.address %>
-              </span>
-            <% end %>
-          <% else %>
-            Weather Forecast
-          <% end %>
-        </h2>
-        <% 
-          # Get timezone offset from API if available
-          timezone = nil
-          if @forecast.forecast_data.present?
-            timezone_id = @forecast.forecast_data.dig('location', 'tz_id')
-            timezone = ActiveSupport::TimeZone[timezone_id] if timezone_id.present?
-          end
-          # Create time with proper timezone
-          local_time = timezone.present? ? Time.current.in_time_zone(timezone) : Time.current
-        %>
-        <!-- Timestamp removed as it's now displayed at the top of the page -->
-      </div>
-      
-      <!-- Weather data display section -->
-      <div class="weather-data p-3 pt-0 bg-white">
-        <div class="forecast-cards grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
-          <% if @forecast.daily_forecasts.present? %>
-            <% 
-              # Show all days from the API response
-              days = get_forecast_days(@forecast.daily_forecasts, timezone&.name, @forecast.should_use_imperial?)
-              
-              # Add current temperature to the first day (today)
-              if days.present? && days.first && @forecast.current_weather.present?
-                current_temp_key = @forecast.should_use_imperial? ? 'temp_f' : 'temp_c'
-                days.first[:current_temp] = @forecast.current_weather[current_temp_key]
-              end
-            %>
-            <% days.each_with_index do |day, index| %>
-              <div class="forecast-card bg-gray-50 rounded-md p-2 shadow-sm">
-                <div class="text-center h-full flex flex-col">
-                  <div class="text-blue-700 font-semibold text-sm">
-                    <%= index == 0 ? "Today" : day[:date].strftime('%a') %>
-                  </div>
-                  <div class="text-xs text-gray-500"><%= day[:date].strftime('%-m/%-d') %></div>
-                  
-                  <div class="forecast-icon my-2 flex-grow flex items-center justify-center">
-                    <%= render partial: 'shared/weather_api_icon', locals: { 
-                      condition: day[:condition], 
-                      size_class: 'w-10 h-10 mx-auto' 
-                    } %>
-                  </div>
-                  
-                  <div class="mt-auto">
-                    <div class="text-gray-700 text-xs">
-                      <%= format_temp(day[:high_temp], @forecast.should_use_imperial? ? 'imperial' : 'metric') %> / 
-                      <%= format_temp(day[:low_temp], @forecast.should_use_imperial? ? 'imperial' : 'metric') %>
-                    </div>
-                    <% if index == 0 && day[:current_temp].present? %>
-                      <div class="font-bold text-blue-600 text-xs whitespace-nowrap">
-                        <%= format_temp(day[:current_temp], @forecast.should_use_imperial? ? 'imperial' : 'metric') %> now
-                      </div>
-                    <% end %>
-                    <div class="text-blue-600 text-xs truncate"><%= format_conditions(day[:condition]['text']) %></div>
-                  </div>
-                </div>
-              </div>
-            <% end %>
-          <% end %>
-        </div>
-      </div>
-      
-      <!-- Technical details section with toggle functionality -->
-      <div data-controller="toggle" class="details-section">
-        <!-- Toggle header -->
-        <div class="p-2 text-right">
-          <button 
-            data-action="toggle#toggle"
-            class="details-toggle-button"
-          >
-            <span class="details-text">Details</span>
-            <span
-              data-toggle-target="icon"
-              class="details-icon"
-            >▶</span>
-          </button>
-        </div>
-        
-        <!-- Content (hidden by default) -->
-        <div 
-          data-toggle-target="content"
-          class="hidden p-4 details-content"
-        >
-          <!-- Metadata section -->
-          <div class="mb-4">
-            <h4 class="text-md font-semibold">Metadata</h4>
-            <% 
-              # Calculate cache expiry time
-              cache_expiry = @forecast.queried_at + 30.minutes
-              minutes_until_expiry = ((cache_expiry - Time.current) / 60).round
-              
-              # Convert queried_at to the location's timezone
-              queried_at_local = timezone.present? ? @forecast.queried_at.in_time_zone(timezone) : @forecast.queried_at
-            %>
-            <table class="metadata-table mt-2">
-              <tr>
-                <td class="table-header">Queried At</td>
-                <td>
-                  <%= queried_at_local.strftime("%Y-%m-%d %I:%M %p %Z") %>
-                </td>
-              </tr>
-              <tr>
-                <td class="table-header">Cache Status</td>
-                <td>
-                  <%= @forecast.from_cache ? "Fresh" : "Expired" %>
-                  <% if @forecast.from_cache %>
-                    - Expires in <%= minutes_until_expiry > 0 ? "#{minutes_until_expiry} minutes" : "expired" %>
-                    <%= button_to "Refresh", refresh_cache_forecast_path(@forecast), 
-                        method: :post,
-                        form: { class: "inline-block ml-2" },
-                        class: "text-xs text-blue-600 hover:text-blue-800 hover:underline" %>
-                  <% end %>
-                </td>
-              </tr>
-              <tr>
-                <td class="table-header">Display Units</td>
-                <td><%= @forecast.display_units %></td>
-              </tr>
-              <tr>
-                <td class="table-header">User Query</td>
-                <td><%= @forecast.user_query || @forecast.address %></td>
-              </tr>
-              <tr>
-                <td class="table-header">API Query / Cache Key</td>
-                <td><%= @forecast.api_query || @forecast.normalized_address %></td>
-              </tr>
-            </table>
-          </div>
-          
-          <!-- Raw weather data -->
-          <h3 class="text-md font-semibold mb-2">Raw Weather Data</h3>
-          <div class="overflow-x-auto">
-            <pre class="raw-data-container p-2 text-xs"><code><%= JSON.pretty_generate(@forecast.forecast_data || {}) %></code></pre>
-          </div>
-        </div>
-      </div>
-    </div>
+  <!-- Turbo Frame for forecast results -->
+  <%= turbo_frame_tag "forecast_results", class: "block w-full" do %>
+    <% if @error.present? %>
+      <%= render partial: "error", locals: { error: @error } %>
+    <% else %>
+      <%= render partial: "forecast_content" %>
+    <% end %>
   <% end %>
   
   <!-- JavaScript for format_temp in the browser -->
