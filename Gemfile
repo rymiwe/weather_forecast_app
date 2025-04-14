@@ -77,6 +77,7 @@ group :development, :test do
   # VCR for recording HTTP interactions in tests
   gem 'vcr'
   gem 'webmock'
+  gem 'faraday'
 end
 
 group :test do
