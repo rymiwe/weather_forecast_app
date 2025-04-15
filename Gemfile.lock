@@ -106,6 +106,10 @@ GEM
       rexml
     crass (1.0.6)
     csv (3.3.3)
+    database_cleaner-active_record (2.2.0)
+      activerecord (>= 5.a)
+      database_cleaner-core (~> 2.0.0)
+    database_cleaner-core (2.0.1)
     date (3.4.1)
     debug (1.10.0)
       irb (~> 1.10)
@@ -391,6 +395,7 @@ PLATFORMS
 DEPENDENCIES
   bootsnap
   capybara
+  database_cleaner-active_record
   debug
   factory_bot_rails
   faraday

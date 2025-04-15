@@ -1,0 +1,38 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://nominatim.openstreetmap.org/search?accept-language=en&addressdetails=1&format=json&q=san%20francisco,%20ca
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - WeatherForecastApp/1.0
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Tue, 15 Apr 2025 15:49:35 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Content-Length:
+      - '577'
+      Connection:
+      - keep-alive
+      Keep-Alive:
+      - timeout=20
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        W3sicGxhY2VfaWQiOjM5MDMzMDEyNSwibGljZW5jZSI6IkRhdGEgwqkgT3BlblN0cmVldE1hcCBjb250cmlidXRvcnMsIE9EYkwgMS4wLiBodHRwOi8vb3NtLm9yZy9jb3B5cmlnaHQiLCJvc21fdHlwZSI6InJlbGF0aW9uIiwib3NtX2lkIjoxMTE5NjgsImxhdCI6IjM3Ljc3OTI1ODgiLCJsb24iOiItMTIyLjQxOTMyODYiLCJjbGFzcyI6ImJvdW5kYXJ5IiwidHlwZSI6ImFkbWluaXN0cmF0aXZlIiwicGxhY2VfcmFuayI6MTIsImltcG9ydGFuY2UiOjAuNzcxODU3MDIxMDA1NTUyMSwiYWRkcmVzc3R5cGUiOiJjaXR5IiwibmFtZSI6IlNhbiBGcmFuY2lzY28iLCJkaXNwbGF5X25hbWUiOiJTYW4gRnJhbmNpc2NvLCBDYWxpZm9ybmlhLCBVbml0ZWQgU3RhdGVzIiwiYWRkcmVzcyI6eyJjaXR5IjoiU2FuIEZyYW5jaXNjbyIsInN0YXRlIjoiQ2FsaWZvcm5pYSIsIklTTzMxNjYtMi1sdmw0IjoiVVMtQ0EiLCJjb3VudHJ5IjoiVW5pdGVkIFN0YXRlcyIsImNvdW50cnlfY29kZSI6InVzIn0sImJvdW5kaW5nYm94IjpbIjM3LjY0MDMxNDMiLCIzNy45Mjk2Njc4IiwiLTEyMy4xNzM4MjUwIiwiLTEyMi4yODE0NTc4Il19XQ==
+  recorded_at: Tue, 15 Apr 2025 15:49:33 GMT
+recorded_with: VCR 6.3.1

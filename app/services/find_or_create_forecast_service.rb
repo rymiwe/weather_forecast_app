@@ -3,18 +3,28 @@
 # Service object to find or create a Forecast for a given address, using caching and API client
 class FindOrCreateForecastService
   # Usage: FindOrCreateForecastService.call(address: ..., request_ip: ...)
-  def self.call(address:, request_ip: nil)
+  def self.call(address:, request_ip: nil, geocoder: Geocoder)
     return nil if address.blank?
 
     normalized_address = address.to_s.strip.downcase
     Rails.logger.debug { "FindOrCreateForecastService: Normalized input: #{normalized_address}" }
+    Rails.logger.debug { "FindOrCreateForecastService: geocoder class is #{geocoder.class}" }
+    # Bias geocoding to US only for likely US ZIP codes
+    geocoded = if normalized_address.match?(/^\d{5}(-\d{4})?$/)
+                 geocoder.search(normalized_address, params: { countrycodes: 'US' }).first
+               else
+                 geocoder.search(normalized_address).first
+               end
+
 
     # Bias geocoding to US only for likely US ZIP codes
     geocoded = if normalized_address.match?(/^\d{5}(-\d{4})?$/)
-                 Geocoder.search(normalized_address, params: { countrycodes: 'US' }).first
+                 geocoder.search(normalized_address, params: { countrycodes: 'US' }).first
                else
-                 Geocoder.search(normalized_address).first
+                 geocoder.search(normalized_address).first
                end
+    Rails.logger.debug { "FindOrCreateForecastService: Geocoding result for '#{normalized_address}': #{geocoded.inspect}" }
+
     unless geocoded&.latitude && geocoded.longitude
       Rails.logger.warn "FindOrCreateForecastService: Geocoding failed for address: #{normalized_address}"
       return nil
@@ -40,16 +50,20 @@ class FindOrCreateForecastService
 
     # Fetch from Weather API client using lat,lon
     api_client = WeatherApiClient.instance
+    Rails.logger.debug { "FindOrCreateForecastService: Requesting weather for latlon_key: #{latlon_key}" }
     forecast_data = api_client.get_weather(address: latlon_key)
+    Rails.logger.debug { "FindOrCreateForecastService: Weather API response for #{latlon_key}: #{forecast_data.inspect}" }
+    forecast_data = forecast_data.deep_stringify_keys if forecast_data.respond_to?(:deep_stringify_keys)
     return nil unless forecast_data
 
     Rails.logger.debug { "FindOrCreateForecastService: Raw forecast_data from API: #{forecast_data.inspect}" }
-    # Extract required temperature fields from forecast_data using symbol keys
-    current_temp = forecast_data[:current]["temp_c"]
-    high_temp = forecast_data[:forecast][:forecastday][0][:day][:maxtemp_c]
-    low_temp = forecast_data[:forecast][:forecastday][0][:day][:mintemp_c]
+    # Defensive: ensure forecast_data is present and has expected keys
+    return nil unless forecast_data.is_a?(Hash) && forecast_data['current'].is_a?(Hash)
 
-    # Create and persist forecast record
+    current_temp = forecast_data['current']['temp_c']
+    high_temp = forecast_data.dig('forecast', 'forecastday', 0, 'day', 'maxtemp_c')
+    low_temp = forecast_data.dig('forecast', 'forecastday', 0, 'day', 'mintemp_c')
+
     attrs = {
       address: latlon_key, # for cache lookup
       user_query: normalized_address, # store original input for display if desired (virtual attr or DB col)

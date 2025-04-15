@@ -115,7 +115,7 @@ class Forecast < ApplicationRecord
   # Get the timezone for the forecast location
   # @return [ActiveSupport::TimeZone] Timezone object
   def location_timezone
-    timezone_name = forecast_data&.dig('timezone')
+    timezone_name = forecast_data&.dig('location', 'tz_id')
     
     if timezone_name.present?
       # Convert seconds offset to hours
@@ -436,33 +436,40 @@ class Forecast < ApplicationRecord
   # Sample forecast data for testing
   def self.sample_forecast_data
     {
-      current: {
-        "main" => {
-          "temp" => 22,
-          "temp_min" => 18,
-          "temp_max" => 25
-        },
-        "weather" => [
-          { "description" => "clear sky" }
-        ],
-        "sys" => {
-          "country" => "US"
-        }
+      'location' => {
+        'name' => 'Sample City',
+        'region' => 'Sample Region',
+        'country' => 'Sample Country',
+        'tz_id' => 'America/Los_Angeles'
       },
-      forecast: {
-        "list" => (1..5).map do |i|
+      'current' => {
+        'temp_c' => 20,
+        'temp_f' => 68,
+        'condition' => { 'text' => 'Clear', 'icon' => '//cdn.weatherapi.com/weather/64x64/day/113.png' }
+      },
+      'forecast' => {
+        'forecastday' => [
           {
-            "dt" => Time.current.advance(days: i).to_i,
-            "main" => {
-              "temp" => 22,
-              "temp_min" => 18,
-              "temp_max" => 25
-            },
-            "weather" => [
-              { "description" => ["clear sky", "few clouds", "scattered clouds"].sample }
-            ]
+            'date' => Date.today.to_s,
+            'day' => {
+              'maxtemp_c' => 22,
+              'maxtemp_f' => 72,
+              'mintemp_c' => 15,
+              'mintemp_f' => 59,
+              'condition' => { 'text' => 'Clear', 'icon' => '//cdn.weatherapi.com/weather/64x64/day/113.png' }
+            }
+          },
+          {
+            'date' => (Date.today + 1).to_s,
+            'day' => {
+              'maxtemp_c' => 21,
+              'maxtemp_f' => 70,
+              'mintemp_c' => 14,
+              'mintemp_f' => 57,
+              'condition' => { 'text' => 'Partly cloudy', 'icon' => '//cdn.weatherapi.com/weather/64x64/day/116.png' }
+            }
           }
-        end
+        ]
       }
     }
   end

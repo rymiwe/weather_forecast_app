@@ -71,6 +71,9 @@ group :development, :test do
 end
 
 group :test do
+  # For database cleaning in tests
+  gem 'database_cleaner-active_record'
+  
   # Use Capybara for system testing
   gem "capybara"
   gem "selenium-webdriver", "~> 4.10.0" # Specify compatible version for webdrivers

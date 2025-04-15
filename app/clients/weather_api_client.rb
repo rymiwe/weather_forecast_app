@@ -33,6 +33,12 @@ class WeatherApiClient < ApiClientBase
     fetch_or_cache_weather(address)
   end
 
+  # Class method for spec compatibility
+  def self.fetch_forecast(address)
+    data = instance.get_weather(address: address)
+    data.deep_stringify_keys
+  end
+
   private
 
   def use_mock_client?
@@ -54,8 +60,8 @@ class WeatherApiClient < ApiClientBase
   end
 
   def mock_weather(address)
-    Rails.logger.info "WeatherApiClient: Using MockWeatherApiClient for #{address}"
-    MockWeatherApiClient.instance.get_weather(address: address)
+    Rails.logger.info "WeatherApiClient: Returning sample forecast data for #{address}"
+    Forecast.sample_forecast_data
   end
 
   def fetch_or_cache_weather(address)

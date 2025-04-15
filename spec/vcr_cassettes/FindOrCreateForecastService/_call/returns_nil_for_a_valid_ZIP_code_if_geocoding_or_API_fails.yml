@@ -1,0 +1,38 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://nominatim.openstreetmap.org/search?accept-language=en&addressdetails=1&countrycodes=US&format=json&q=82001
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - WeatherForecastApp/1.0
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Tue, 15 Apr 2025 18:19:57 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Content-Length:
+      - '594'
+      Connection:
+      - keep-alive
+      Keep-Alive:
+      - timeout=20
+    body:
+      encoding: ASCII-8BIT
+      string: !binary |-
+        W3sicGxhY2VfaWQiOjM1MzY1OTEzMiwibGljZW5jZSI6IkRhdGEgwqkgT3BlblN0cmVldE1hcCBjb250cmlidXRvcnMsIE9EYkwgMS4wLiBodHRwOi8vb3NtLm9yZy9jb3B5cmlnaHQiLCJsYXQiOiI0MS4xMzk1NzUxNTI5MTAwNTUiLCJsb24iOiItMTA0LjgwNzM2MzUyNzUxMzIzIiwiY2xhc3MiOiJwbGFjZSIsInR5cGUiOiJwb3N0Y29kZSIsInBsYWNlX3JhbmsiOjIxLCJpbXBvcnRhbmNlIjowLjEyMDAwOTk5OTk5OTk5OTk1LCJhZGRyZXNzdHlwZSI6InBvc3Rjb2RlIiwibmFtZSI6IjgyMDAxIiwiZGlzcGxheV9uYW1lIjoiODIwMDEsIENoZXllbm5lLCBMYXJhbWllIENvdW50eSwgV3lvbWluZywgVW5pdGVkIFN0YXRlcyIsImFkZHJlc3MiOnsicG9zdGNvZGUiOiI4MjAwMSIsImNpdHkiOiJDaGV5ZW5uZSIsImNvdW50eSI6IkxhcmFtaWUgQ291bnR5Iiwic3RhdGUiOiJXeW9taW5nIiwiSVNPMzE2Ni0yLWx2bDQiOiJVUy1XWSIsImNvdW50cnkiOiJVbml0ZWQgU3RhdGVzIiwiY291bnRyeV9jb2RlIjoidXMifSwiYm91bmRpbmdib3giOlsiNDEuMDg5NTc1MiIsIjQxLjE4OTU3NTIiLCItMTA0Ljg1NzM2MzUiLCItMTA0Ljc1NzM2MzUiXX1d
+  recorded_at: Tue, 15 Apr 2025 18:19:55 GMT
+recorded_with: VCR 6.3.1
