@@ -40,7 +40,7 @@ gem "tailwindcss-rails"
 gem "jbuilder"
 
 # Use ViewComponent for component-based UI architecture
-gem "view_component"
+# gem "view_component"
 
 # Geocoder for address parsing and geocoding
 gem 'geocoder'

@@ -58,8 +58,11 @@ class Forecast < ApplicationRecord
   # @param temp [Float, nil] Optional override temperature
   # @return [String] Formatted temperature string
   def display_temperature(use_imperial: false, temp: nil)
-    temp_value = temp || (use_imperial ? forecast_data&.dig('current', 'temp_f') || convert_to_fahrenheit(current_temp)
-                                    : forecast_data&.dig('current', 'temp_c') || current_temp)
+    temp_value = temp || (if use_imperial
+                            forecast_data&.dig('current', 'temp_f') || convert_to_fahrenheit(current_temp)
+                          else
+                            forecast_data&.dig('current', 'temp_c') || current_temp
+                          end)
     use_imperial ? "#{temp_value.round}°F" : "#{temp_value.round}°C"
   end
   
@@ -410,7 +413,11 @@ class Forecast < ApplicationRecord
     days = forecast_data&.dig('forecast', 'forecastday') || []
     days.map do |day|
       date = day['date']
-      local_date = timezone ? timezone.parse(date) : Date.parse(date) rescue date
+      local_date = begin
+        timezone ? timezone.parse(date) : Date.parse(date)
+      rescue StandardError
+        date
+      end
       day_name = local_date.respond_to?(:strftime) ? local_date.strftime('%A') : date.to_s
       {
         date: local_date,

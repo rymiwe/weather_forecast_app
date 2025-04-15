@@ -7,15 +7,15 @@ class FindOrCreateForecastService
     return nil if address.blank?
 
     normalized_address = address.to_s.strip.downcase
-    Rails.logger.debug "FindOrCreateForecastService: Normalized input: #{normalized_address}"
+    Rails.logger.debug { "FindOrCreateForecastService: Normalized input: #{normalized_address}" }
 
     # Bias geocoding to US only for likely US ZIP codes
-    if normalized_address.match?(/^\d{5}(-\d{4})?$/)
-      geocoded = Geocoder.search(normalized_address, params: { countrycodes: 'US' }).first
-    else
-      geocoded = Geocoder.search(normalized_address).first
-    end
-    unless geocoded && geocoded.latitude && geocoded.longitude
+    geocoded = if normalized_address.match?(/^\d{5}(-\d{4})?$/)
+                 Geocoder.search(normalized_address, params: { countrycodes: 'US' }).first
+               else
+                 Geocoder.search(normalized_address).first
+               end
+    unless geocoded&.latitude && geocoded.longitude
       Rails.logger.warn "FindOrCreateForecastService: Geocoding failed for address: #{normalized_address}"
       return nil
     end
@@ -23,15 +23,18 @@ class FindOrCreateForecastService
     lat = geocoded.latitude.round(6)
     lon = geocoded.longitude.round(6)
     latlon_key = "#{lat},#{lon}"
-    Rails.logger.debug "FindOrCreateForecastService: Geocoded to lat: #{lat}, lon: #{lon}, latlon_key: #{latlon_key}"
-    cache_key = "forecast:#{latlon_key}"
-    cache_ttl = Rails.configuration.x.weather.cache_ttl || 30.minutes
+    Rails.logger.debug do
+      "FindOrCreateForecastService: Geocoded to lat: #{lat}, lon: #{lon}, latlon_key: #{latlon_key}"
+    end
+    Rails.configuration.x.weather.cache_ttl || 30.minutes
 
     # Try to fetch from cache by lat,lon (within 30 min)
     forecast = Forecast.where(address: latlon_key)
-                      .where('queried_at >= ?', Time.current - 30.minutes)
-                      .order(queried_at: :desc).first
-    Rails.logger.debug "FindOrCreateForecastService: Cache lookup for #{latlon_key} => #{forecast.present? ? "HIT" : "MISS"}" 
+                       .where(queried_at: 30.minutes.ago..)
+                       .order(queried_at: :desc).first
+    Rails.logger.debug do
+      "FindOrCreateForecastService: Cache lookup for #{latlon_key} => #{forecast.present? ? 'HIT' : 'MISS'}"
+    end 
     from_cache = forecast.present?
     return forecast.tap { |f| f.from_cache = true } if from_cache
 
@@ -40,7 +43,7 @@ class FindOrCreateForecastService
     forecast_data = api_client.get_weather(address: latlon_key)
     return nil unless forecast_data
 
-    Rails.logger.debug "FindOrCreateForecastService: Raw forecast_data from API: #{forecast_data.inspect}"
+    Rails.logger.debug { "FindOrCreateForecastService: Raw forecast_data from API: #{forecast_data.inspect}" }
     # Extract required temperature fields from forecast_data using symbol keys
     current_temp = forecast_data[:current]["temp_c"]
     high_temp = forecast_data[:forecast][:forecastday][0][:day][:maxtemp_c]
@@ -57,13 +60,13 @@ class FindOrCreateForecastService
       high_temp: high_temp,
       low_temp: low_temp
     }
-    Rails.logger.debug "FindOrCreateForecastService: Creating Forecast with attributes: #{attrs.inspect}"
+    Rails.logger.debug { "FindOrCreateForecastService: Creating Forecast with attributes: #{attrs.inspect}" }
     forecast = Forecast.create(attrs)
     if forecast.persisted?
-      Rails.logger.debug "FindOrCreateForecastService: Forecast saved successfully with id #{forecast.id}"
+      Rails.logger.debug { "FindOrCreateForecastService: Forecast saved successfully with id #{forecast.id}" }
     else
-      Rails.logger.error "FindOrCreateForecastService: Forecast failed to save: #{forecast.errors.full_messages.join(", ")}"
-      raise "Forecast failed to save: #{forecast.errors.full_messages.join(", ")}"
+      Rails.logger.error "FindOrCreateForecastService: Forecast failed to save: #{forecast.errors.full_messages.join(', ')}"
+      raise "Forecast failed to save: #{forecast.errors.full_messages.join(', ')}"
     end
     forecast
   end

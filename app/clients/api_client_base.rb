@@ -30,10 +30,11 @@ class ApiClientBase
     end
 
     response = conn.get(endpoint, params, headers)
-    if response.success?
-      JSON.parse(response.body, symbolize_names: true)
-    else
-      raise "API request failed with status code #{response.status}"
-    end
+    raise "API request failed with status code #{response.status}" unless response.success?
+
+    JSON.parse(response.body, symbolize_names: true)
+    
+      
+    
   end
 end

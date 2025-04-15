@@ -135,9 +135,9 @@ class ForecastsController < ApplicationController
       @units = @forecast.display_units
 
       # Ensure from_cache is set for the view (for Turbo/Hotwire, instance var is copied)
-      if @forecast.persisted? && @forecast.queried_at && @forecast.queried_at > Time.current - Forecast.cache_duration
+      if @forecast.persisted? && @forecast.queried_at && @forecast.queried_at > Time.current - Forecast.cache_duration && @forecast.from_cache.nil?
         # If the record exists and is fresh, mark as from_cache for the view
-        @forecast.from_cache = true if @forecast.from_cache.nil?
+        @forecast.from_cache = true
       end
 
       # Respond with appropriate format
@@ -151,9 +151,9 @@ class ForecastsController < ApplicationController
       else
         handle_error("API client error: #{e.message}")
       end
-    rescue Faraday::ConnectionFailed => e
+    rescue Faraday::ConnectionFailed
       handle_error("Connection failed. Please check your internet connection and try again.")
-    rescue Faraday::TimeoutError => e
+    rescue Faraday::TimeoutError
       handle_error("Request timed out. Please try again later.")
     rescue StandardError => e
       Rails.logger.error("Error in forecast search: #{e.message}")
