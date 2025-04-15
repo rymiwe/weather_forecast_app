@@ -144,7 +144,7 @@ class WeatherApiClient < ApiClientBase
 
     # Extract relevant data in a format that matches our application's expectations
     {
-      current_weather: {
+      current: {
         'name' => data[:location][:name],
         'region' => data[:location][:region],
         'country' => data[:location][:country],
@@ -170,51 +170,7 @@ class WeatherApiClient < ApiClientBase
         'gust_mph' => data[:current][:gust_mph],
         'gust_kph' => data[:current][:gust_kph]
       },
-      forecast: {
-        'forecastday' => data[:forecast][:forecastday].map do |day|
-          {
-            'date' => day[:date],
-            'date_epoch' => day[:date_epoch],
-            'day' => {
-              'maxtemp_c' => day[:day][:maxtemp_c],
-              'maxtemp_f' => day[:day][:maxtemp_f],
-              'mintemp_c' => day[:day][:mintemp_c],
-              'mintemp_f' => day[:day][:mintemp_f],
-              'avgtemp_c' => day[:day][:avgtemp_c],
-              'avgtemp_f' => day[:day][:avgtemp_f],
-              'condition' => {
-                'text' => day[:day][:condition][:text],
-                'icon' => day[:day][:condition][:icon],
-                'code' => day[:day][:condition][:code]
-              },
-              'uv' => day[:day][:uv]
-            },
-            'astro' => day[:astro],
-            'hour' => day[:hour].map do |hour|
-              {
-                'time_epoch' => hour[:time_epoch],
-                'time' => hour[:time],
-                'temp_c' => hour[:temp_c],
-                'temp_f' => hour[:temp_f],
-                'condition' => {
-                  'text' => hour[:condition][:text],
-                  'icon' => hour[:condition][:icon],
-                  'code' => hour[:condition][:code]
-                },
-                'wind_mph' => hour[:wind_mph],
-                'wind_kph' => hour[:wind_kph],
-                'wind_dir' => hour[:wind_dir],
-                'humidity' => hour[:humidity],
-                'cloud' => hour[:cloud],
-                'feelslike_c' => hour[:feelslike_c],
-                'feelslike_f' => hour[:feelslike_f],
-                'chance_of_rain' => hour[:chance_of_rain],
-                'chance_of_snow' => hour[:chance_of_snow]
-              }
-            end
-          }
-        end
-      },
+      forecast: data[:forecast],
       location: data[:location]
     }
   end

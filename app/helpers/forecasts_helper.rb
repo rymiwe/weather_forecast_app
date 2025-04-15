@@ -50,15 +50,19 @@ module ForecastsHelper
   end
   
   # Display temperature with the appropriate unit
-  # @param temp [Float] Temperature value
+  # @param temp_c [Float] Celsius value
+  # @param temp_f [Float] Fahrenheit value
   # @param use_imperial [Boolean] Whether to use imperial units
   # @return [String] Formatted temperature with units
-  def display_temperature(temp, use_imperial = false)
-    return "" if temp.blank?
-    
-    unit_symbol = use_imperial ? "°F" : "°C"
-    temp_value = use_imperial ? celsius_to_fahrenheit(temp) : temp.to_f
-    "#{temp_value.round}#{unit_symbol}"
+  def display_temperature(temp_c, temp_f, use_imperial = false)
+    return "" if temp_c.blank? && temp_f.blank?
+    if use_imperial
+      return "" if temp_f.blank?
+      "#{temp_f.round}°F"
+    else
+      return "" if temp_c.blank?
+      "#{temp_c.round}°C"
+    end
   end
   
   # Determines if imperial units should be used
@@ -105,9 +109,11 @@ module ForecastsHelper
       {
         date: day['date'].is_a?(String) ? Date.parse(day['date']) : day['date'],
         day_name: day['date'].is_a?(String) ? Date.parse(day['date']).strftime('%A') : day['date'].strftime('%A'),
-        high: use_imperial ? celsius_to_fahrenheit(day['day']['maxtemp_c']) : day['day']['maxtemp_c'],
-        low: use_imperial ? celsius_to_fahrenheit(day['day']['mintemp_c']) : day['day']['mintemp_c'],
-        conditions: [day['day']['condition']['text']]
+        high_c: day['day']['maxtemp_c'],
+        high_f: day['day']['maxtemp_f'],
+        low_c: day['day']['mintemp_c'],
+        low_f: day['day']['mintemp_f'],
+        condition: day['day']['condition']
       }
     end
   end

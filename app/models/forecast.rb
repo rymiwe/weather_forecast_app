@@ -57,13 +57,11 @@ class Forecast < ApplicationRecord
   # @return [String] Formatted temperature with unit
   def current_temp_display
     if should_use_imperial?
-      temp = forecast_data&.dig('current_weather', 'temp_f') || 
-             forecast_data&.dig('current', 'temp_f') || 
+      temp = forecast_data&.dig('current', 'temp_f') || 
              convert_to_fahrenheit(current_temp)
       "#{temp.round}°F"
     else
-      temp = forecast_data&.dig('current_weather', 'temp_c') || 
-             forecast_data&.dig('current', 'temp_c') || 
+      temp = forecast_data&.dig('current', 'temp_c') || 
              current_temp
       "#{temp.round}°C"
     end
@@ -73,19 +71,15 @@ class Forecast < ApplicationRecord
   # @return [String] Formatted high/low with units
   def high_low_display
     if should_use_imperial?
-      high = forecast_data&.dig('current_weather', 'maxtemp_f') || 
-             forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'maxtemp_f') || 
+      high = forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'maxtemp_f') || 
              convert_to_fahrenheit(high_temp)
-      low = forecast_data&.dig('current_weather', 'mintemp_f') || 
-            forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'mintemp_f') || 
+      low = forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'mintemp_f') || 
             convert_to_fahrenheit(low_temp)
       "#{high.round}°F / #{low.round}°F"
     else
-      high = forecast_data&.dig('current_weather', 'maxtemp_c') || 
-             forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'maxtemp_c') || 
+      high = forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'maxtemp_c') || 
              high_temp
-      low = forecast_data&.dig('current_weather', 'mintemp_c') || 
-            forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'mintemp_c') || 
+      low = forecast_data&.dig('forecast', 'forecastday', 0, 'day', 'mintemp_c') || 
             low_temp
       "#{high.round}°C / #{low.round}°C"
     end
@@ -229,8 +223,7 @@ class Forecast < ApplicationRecord
       normalized_address = normalize_address(address)
       
       # Safely extract current weather data with fallbacks
-      current = api_response[:current_weather] || api_response["current_weather"] || 
-                api_response[:current] || api_response["current"] || {}
+      current = api_response[:current] || api_response["current"] || {}
       
       # Extract main weather data based on the API format
       main = current[:main] || current["main"] || {}
@@ -310,7 +303,7 @@ class Forecast < ApplicationRecord
     # Return a properly formatted mock forecast
     now = Time.current
     mock_data = {
-      current_weather: {
+      current: {
         "main" => {
           "temp" => is_us ? 24 : 20, # temperatures in C for storage
           "temp_min" => is_us ? 20 : 18,
@@ -345,10 +338,10 @@ class Forecast < ApplicationRecord
       forecast = new(
         address: address,
         zip_code: address.to_s.match(/\d{5}/)&.to_s,
-        current_temp: mock_data[:current_weather]["main"]["temp"],
-        high_temp: mock_data[:current_weather]["main"]["temp_max"],
-        low_temp: mock_data[:current_weather]["main"]["temp_min"],
-        conditions: mock_data[:current_weather]["weather"][0]["description"],
+        current_temp: mock_data[:current]["main"]["temp"],
+        high_temp: mock_data[:current]["main"]["temp_max"],
+        low_temp: mock_data[:current]["main"]["temp_min"],
+        conditions: mock_data[:current]["weather"][0]["description"],
         extended_forecast: mock_data.to_json,
         queried_at: Time.current
       )
@@ -411,7 +404,7 @@ class Forecast < ApplicationRecord
   # Sample forecast data for testing
   def self.sample_forecast_data
     {
-      current_weather: {
+      current: {
         "main" => {
           "temp" => 22,
           "temp_min" => 18,

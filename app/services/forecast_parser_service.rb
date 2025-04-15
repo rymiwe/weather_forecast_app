@@ -36,9 +36,9 @@ class ForecastParserService
   # @param parsed_data [Hash] Parsed forecast data
   # @return [Hash] Current weather data
   def self.extract_current_weather(parsed_data)
-    return {} unless parsed_data&.dig('current_weather').present?
+    return {} unless parsed_data&.dig('current').present?
     
-    parsed_data['current_weather']
+    parsed_data['current']
   rescue StandardError => e
     Rails.logger.error "Error extracting current weather: #{e.message}"
     {}

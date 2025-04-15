@@ -5,46 +5,34 @@ require 'ruby-units'
 # Follows DRY principles by centralizing temperature formatting logic
 module TemperatureHelper
   # Display a temperature value with the appropriate unit
-  # @param temp [Float] Temperature value in Celsius (always stored in metric)
-  # @param units [String] Units to display in ('metric' or 'imperial')
+  # @param temp_c [Float] Temperature value in Celsius
+  # @param temp_f [Float] Temperature value in Fahrenheit
+  # @param use_imperial [Boolean] Whether to use imperial units
   # @param options [Hash] Display options
   # @option options [Boolean] :show_unit Whether to show the unit symbol
   # @option options [String] :size Size of the temperature text ('sm', 'md', 'lg', 'xl', '2xl')
   # @return [String] Formatted temperature string
-  def display_temperature(temp, units = nil, options = {})
-    return "N/A" if temp.nil?
-    
+  def display_temperature(temp_c, temp_f, use_imperial = false, options = {})
+    return "N/A" if temp_c.nil? && temp_f.nil?
+
     # Default options
     options = {
       show_unit: true,
       size: nil
     }.merge(options || {})
-    
-    # Get units from helper if not explicitly provided
-    units = get_temperature_units(units)
-    
-    # Convert temperature if needed
-    if units == 'imperial'
-      # Convert Celsius to Fahrenheit using ruby-units
-      converted_temp = Unit.new("#{temp} tempC").convert_to('tempF').scalar.round
-      unit_symbol = "°F"
-    else
-      # Keep as Celsius
-      converted_temp = temp.round
-      unit_symbol = "°C"
-    end
-    
-    # Format the temperature string
-    temp_str = converted_temp.to_s
+
+    value = use_imperial ? temp_f : temp_c
+    unit_symbol = use_imperial ? "°F" : "°C"
+    return "N/A" if value.nil?
+
+    temp_str = value.round.to_s
     temp_str += unit_symbol if options[:show_unit]
-    
-    # Apply CSS class for size if specified
+
     if options[:size]
       css_class = size_class_for(options[:size])
       temp_str = content_tag(:span, temp_str, class: css_class) if css_class.present?
     end
-    
-    # Return the formatted string
+
     temp_str.html_safe
   end
   

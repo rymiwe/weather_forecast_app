@@ -15,7 +15,7 @@ class MockWeatherApiClient
     # Create a mock response that matches the WeatherAPI.com structure
     # but with deterministic data based on the address
     {
-      current_weather: mock_current_weather(address),
+      current: mock_current_weather(address),
       forecast: mock_forecast(address),
       location: mock_location(address)
     }
