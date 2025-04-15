@@ -15,14 +15,6 @@ class FindOrCreateForecastService
                else
                  geocoder.search(normalized_address).first
                end
-
-
-    # Bias geocoding to US only for likely US ZIP codes
-    geocoded = if normalized_address.match?(/^\d{5}(-\d{4})?$/)
-                 geocoder.search(normalized_address, params: { countrycodes: 'US' }).first
-               else
-                 geocoder.search(normalized_address).first
-               end
     Rails.logger.debug { "FindOrCreateForecastService: Geocoding result for '#{normalized_address}': #{geocoded.inspect}" }
 
     unless geocoded&.latitude && geocoded.longitude

@@ -22,11 +22,7 @@ RSpec.describe FindOrCreateForecastService, type: :service do
       expect(forecast).to be_nil
     end
 
-    it 'returns nil for a valid ZIP code if geocoding or API fails', :vcr do
-      # This test simulates the failure path for a real ZIP code that cannot be geocoded or found by the weather API
-      forecast = described_class.call(address: '82001')
-      expect(forecast).to be_nil
-    end
+
     context 'when normalizing forecast_data keys' do
       let(:geocoded_double) { double('Geocoded', latitude: 40.0, longitude: -75.0) }
       before do
@@ -73,9 +69,18 @@ RSpec.describe FindOrCreateForecastService, type: :service do
       end
     end
 
-    it 'returns nil for a valid ZIP code if geocoding or API fails', vcr: false do
-      # Disable VCR so Geocoder.search stub is effective; VCR cassette would override the stub.
-      mock_geocoder = double(search: [])
+  end
+
+  #
+  # This test uses dependency injection to pass a mock Geocoder class to the service.
+  # By using class_double and explicit stubbing, we avoid any real HTTP calls or VCR dependencies.
+  # This ensures the test is robust, isolated, and not affected by external API changes or cassette state.
+  # This is the preferred Rails 7/RSpec approach for testing service objects with external dependencies.
+  describe '.call geocoding failure', vcr: false do
+    it 'returns nil for a valid ZIP code if geocoding or API fails' do
+      mock_geocoder = class_double('Geocoder')
+      allow(mock_geocoder).to receive(:search).with('82001', params: { countrycodes: 'US' }).and_return([])
+      allow(mock_geocoder).to receive(:search).with('82001').and_return([])
       forecast = described_class.call(address: '82001', geocoder: mock_geocoder)
       expect(forecast).to be_nil
     end
