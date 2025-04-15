@@ -75,15 +75,15 @@
         <div class="mb-4">
           <div class="text-center mb-2">
             <div class="text-base font-bold tracking-wide text-gray-800 mb-1">Current Weather</div>
-            <%= render 'shared/weather_api_icon', condition: @forecast.forecast_data['current']['condition'], size_class: 'w-20 h-20 mx-auto' %>
-            <% if @forecast.forecast_data['current']['condition'].present? && @forecast.forecast_data['current']['condition']['text'].present? %>
+            <%= render 'shared/weather_api_icon', condition: @forecast.current_condition, size_class: 'w-20 h-20 mx-auto', icon_url: @forecast.current_condition['icon'] %>
+            <% if @forecast.current_condition['text'].present? %>
               <div class="inline-block mt-2 px-3 py-1 rounded bg-gray-200 text-blue-700 text-xs font-semibold shadow-sm">
-                <%= @forecast.forecast_data['current']['condition']['text'] %>
+                <%= @forecast.current_condition['text'] %>
               </div>
             <% end %>
           </div>
           <div class="flex items-center justify-center gap-2 text-5xl font-bold text-gray-800 leading-none mb-2">
-            <%= display_temperature(@forecast.forecast_data.dig('current', 'temp_c'), @forecast.forecast_data.dig('current', 'temp_f'), use_imperial) %>
+            <%= @forecast.display_temperature(use_imperial: use_imperial) %>
           </div>
         </div>
       </div>
@@ -91,7 +91,7 @@
   </div>
   <!-- Forecast Cards: icon with tooltip, no info icon, no high/low text -->
   <div class="forecast-cards-container">
-    <% forecast_days = get_forecast_days(@forecast.extended_forecast, timezone, use_imperial) %>
+    <% forecast_days = @forecast.forecast_days(timezone: timezone, use_imperial: use_imperial) %>
     <% forecast_days.each_with_index do |day, index| %>
       <div class="forecast-card bg-white rounded shadow-md p-4"
            data-controller="weather-card"
@@ -100,32 +100,27 @@
            data-weather-card-loading-class="opacity-50">
         <div class="forecast-card-header">
           <h3 class="forecast-day text-lg text-gray-600">
-            <%= index == 0 ? "Today" : day[:day_name] %>
+            <%= day[:day_name] %>
           </h3>
         </div>
         <div class="forecast-card-body flex flex-col items-center">
           <span class="relative group">
             <%= render 'shared/weather_api_icon', condition: day[:condition], size_class: 'w-10 h-10 mx-auto' %>
-            <% if day[:condition].present? %>
-              <span class="absolute left-1/2 -translate-x-1/2 mt-2 px-2 py-0.5 rounded bg-gray-800 text-white text-[10px] opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-10 shadow-md whitespace-nowrap">
+            <% if day[:condition]['text'].present? %>
+              <div class="inline-block mt-2 px-3 py-1 rounded bg-gray-200 text-blue-700 text-xs font-semibold shadow-sm">
                 <%= day[:condition]['text'] %>
-              </span>
+              </div>
             <% end %>
           </span>
           <div class="flex gap-2 mt-2">
             <span class="font-semibold text-red-600 text-lg">
-              <%= display_temperature(day[:high_c], day[:high_f], use_imperial) %>
+              <%= @forecast.display_temperature(use_imperial: use_imperial, temp: day[:high]) %>
             </span>
             <span class="font-semibold text-blue-600 text-lg">
-              <%= display_temperature(day[:low_c], day[:low_f], use_imperial) %>
+              <%= @forecast.display_temperature(use_imperial: use_imperial, temp: day[:low]) %>
             </span>
           </div>
         </div>
-        <% if day[:summary].present? %>
-          <div class="forecast-card-summary mt-2 text-xs text-gray-500 text-center">
-            <%= day[:summary] %>
-          </div>
-        <% end %>
       </div>
     <% end %>
   </div>

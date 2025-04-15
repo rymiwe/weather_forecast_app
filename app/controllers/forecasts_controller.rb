@@ -97,7 +97,7 @@ class ForecastsController < ApplicationController
     @forecast.destroy
     
     # Get fresh forecast data
-    @forecast = FindOrCreateForecastService.call(address: address, request_ip: request.remote_ip)
+    @forecast = ::FindOrCreateForecastService.call(address: address, request_ip: request.remote_ip)
     
     if @forecast.nil?
       flash[:alert] = "Unable to refresh forecast data. Please try again."
@@ -122,7 +122,7 @@ class ForecastsController < ApplicationController
     @search_query = address
     
     begin
-      @forecast = FindOrCreateForecastService.call(address: @address, request_ip: request.remote_ip)
+      @forecast = ::FindOrCreateForecastService.call(address: @address, request_ip: request.remote_ip)
       
       if @forecast.nil?
         handle_forecast_not_found
@@ -133,7 +133,13 @@ class ForecastsController < ApplicationController
       @forecast.user_query = address
       
       @units = @forecast.display_units
-      
+
+      # Ensure from_cache is set for the view (for Turbo/Hotwire, instance var is copied)
+      if @forecast.persisted? && @forecast.queried_at && @forecast.queried_at > Time.current - Forecast.cache_duration
+        # If the record exists and is fresh, mark as from_cache for the view
+        @forecast.from_cache = true if @forecast.from_cache.nil?
+      end
+
       # Respond with appropriate format
       respond_to do |format|
         format.html { render :index }

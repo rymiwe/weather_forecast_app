@@ -53,18 +53,20 @@ class Forecast < ApplicationRecord
     should_use_imperial? ? 'imperial' : 'metric'
   end
   
+  # Display temperature for the current weather, with correct units
+  # @param use_imperial [Boolean] Whether to use imperial units
+  # @param temp [Float, nil] Optional override temperature
+  # @return [String] Formatted temperature string
+  def display_temperature(use_imperial: false, temp: nil)
+    temp_value = temp || (use_imperial ? forecast_data&.dig('current', 'temp_f') || convert_to_fahrenheit(current_temp)
+                                    : forecast_data&.dig('current', 'temp_c') || current_temp)
+    use_imperial ? "#{temp_value.round}°F" : "#{temp_value.round}°C"
+  end
+  
   # Format current temperature for display
   # @return [String] Formatted temperature with unit
   def current_temp_display
-    if should_use_imperial?
-      temp = forecast_data&.dig('current', 'temp_f') || 
-             convert_to_fahrenheit(current_temp)
-      "#{temp.round}°F"
-    else
-      temp = forecast_data&.dig('current', 'temp_c') || 
-             current_temp
-      "#{temp.round}°C"
-    end
+    display_temperature(use_imperial: should_use_imperial?)
   end
   
   # Format high/low temperature for display
@@ -89,11 +91,7 @@ class Forecast < ApplicationRecord
   # @param temp [Float] Temperature in Celsius
   # @return [String] Formatted temperature with unit
   def format_temp(temp)
-    if should_use_imperial?
-      "#{convert_to_fahrenheit(temp).round}°F"
-    else
-      "#{temp.round}°C"
-    end
+    display_temperature(use_imperial: should_use_imperial?, temp: temp)
   end
   
   # Convert Celsius to Fahrenheit
@@ -397,6 +395,33 @@ class Forecast < ApplicationRecord
   def current_weather
     return {} unless forecast_data.present?
     ForecastParserService.extract_current_weather(forecast_data)
+  end
+  
+  # Get current condition hash (for robust view rendering)
+  def current_condition
+    forecast_data&.dig('current', 'condition') || {}
+  end
+  
+  # Returns an array of forecast day hashes for the view
+  # Optionally applies timezone and unit conversion
+  # @param timezone [ActiveSupport::TimeZone, nil]
+  # @param use_imperial [Boolean]
+  def forecast_days(timezone: nil, use_imperial: false)
+    days = forecast_data&.dig('forecast', 'forecastday') || []
+    days.map do |day|
+      date = day['date']
+      local_date = timezone ? timezone.parse(date) : Date.parse(date) rescue date
+      day_name = local_date.respond_to?(:strftime) ? local_date.strftime('%A') : date.to_s
+      {
+        date: local_date,
+        day_name: day_name,
+        high: use_imperial ? day['day']['maxtemp_f'] : day['day']['maxtemp_c'],
+        low: use_imperial ? day['day']['mintemp_f'] : day['day']['mintemp_c'],
+        condition: day['day']['condition'],
+        icon: day['day']['condition']&.dig('icon'),
+        text: day['day']['condition']&.dig('text')
+      }
+    end
   end
 
   private

@@ -21,11 +21,11 @@ class WeatherApiClient < ApiClientBase
     super(api_key: @api_key, base_url: API_BASE_URL)
   end
 
-  # Get weather data for a given address in a single API call
-  # @param address [String] The address to get weather for (city, zip, coordinates, etc)
+  # Get weather data for a given lat,lon string in a single API call
+  # @param address [String] The lat,lon string to get weather for
   # @return [Hash] Weather data including current and forecast
   def get_weather(address:)
-    Rails.logger.info "WeatherApiClient: Getting weather for address: #{address}"
+    Rails.logger.info "WeatherApiClient: Getting weather for coordinates: #{address}"
 
     return nil if missing_api_key_in_production?
     return mock_weather(address) if @use_mock
@@ -59,11 +59,10 @@ class WeatherApiClient < ApiClientBase
   end
 
   def fetch_or_cache_weather(address)
-    normalized_address = normalize_address(address)
-    cache_key = "weather:#{normalized_address}"
+    cache_key = "weather:#{address}"
 
     Rails.cache.fetch(cache_key, expires_in: @weather_cache_ttl) do
-      Rails.logger.info "WeatherApiClient: Cache miss, fetching from API for #{normalized_address}"
+      Rails.logger.info "WeatherApiClient: Cache miss, fetching from API for #{address}"
       fetch_from_api(address)
     end
   end
@@ -86,54 +85,22 @@ class WeatherApiClient < ApiClientBase
     transform_response(response)
   end
 
-  # Create a sample forecast with mock data
   def real_get_weather(address)
     Rails.logger.info "WeatherApiClient#real_get_weather: Starting API request for #{address}"
 
-    query = format_address_query(address)
-    
-    # Build the API URL - use the proper v1 path
+    # address is now always a lat,lon string
+    query = address
     endpoint = "/v1/forecast.json"
     params = {
       q: query,
       days: FORECAST_DAYS,
-      aqi: 'yes', # Include air quality data
-      key: @api_key # WeatherAPI.com uses 'key' parameter, not 'appid'
+      aqi: 'yes',
+      key: @api_key
     }
 
     headers = { 'User-Agent' => 'WeatherForecastApp/1.0' }
 
     request(endpoint, params, headers)
-  end
-  
-  def format_address_query(address)
-    # Ensure US ZIP codes are properly identified
-    if address.to_s.match?(/^\d{5}(-\d{4})?$/)
-      # For US ZIP codes, append US to ensure proper geo-location
-      query = "#{address},us"
-      Rails.logger.info "WeatherApiClient: US ZIP code detected, modified query to: #{query}"
-      return query
-    end
-    
-    address
-  end
-
-  # Normalize address for consistent caching
-  # @param address [String] The address to normalize
-  # @return [String] Normalized address
-  def normalize_address(address)
-    # Simple address normalization for stable cache keys
-    if address.to_s.match?(/^\d{5}(-\d{4})?$/)
-      # For US zip codes, append ",us" to ensure consistent geolocation
-      return "#{address.to_s.strip},us"
-    elsif match = address.to_s.match(/([a-z\s.]+),\s*([a-z]{2})/i)
-      # For "City, ST" format, normalize to lowercase with standard spacing
-      city, state = match[1].strip, match[2].strip
-      return "#{city.downcase},#{state.downcase}"
-    else
-      # For other formats, just lowercase and normalize spacing
-      return address.to_s.strip.downcase.gsub(/\s+/, ' ')
-    end
   end
 
   # Transform WeatherAPI response to match our application's expected structure
