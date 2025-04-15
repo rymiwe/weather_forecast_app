@@ -10,29 +10,28 @@
   </div>
   
   <!-- Search form -->
-  <div class="search-container max-w-lg mx-auto mb-8">
-    <%= form_with url: search_forecasts_path, method: :get, 
-                  class: "search-form", 
+  <div class="flex flex-col items-center justify-center my-8">
+    <%= form_with url: search_forecasts_path, method: :get, local: true, 
+                  class: "flex gap-2 items-center w-full max-w-xl", 
                   data: { 
                     controller: "search-form",
                     action: "submit->search-form#validate input->search-form#inputChanged",
-                    search_form_invalid_class: "border-red-500 ring-1 ring-red-500",
                     search_form_error_visible_class: "block"
                   } do |form| %>
-      <div class="search-input-container">
-        <%= form.text_field :address, 
-            value: @search_query, 
-            class: "search-input", 
+      <%= form.text_field :address,
+            value: @search_query,
+            class: "flex-1 min-w-0 px-4 py-2 rounded-md border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white shadow-sm text-base transition placeholder-gray-400",
             placeholder: "Enter city, zip code, or address",
             data: { search_form_target: "input" },
             aria: { required: true } %>
-        <p class="text-red-500 text-sm mt-1 hidden" 
-           data-search-form-target="error" 
-           hidden></p>
-      </div>
-      <%= form.submit "Get Forecast", 
-          name: "button", 
-          class: "search-button hover:bg-blue-700 transition-colors" %>
+      <button type="submit"
+          name="button"
+          class="px-5 py-2 rounded-md bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+        Get Forecast
+      </button>
+      <p class="text-red-500 text-sm mt-1 hidden" 
+         data-search-form-target="error" 
+         hidden></p>
     <% end %>
   </div>
 
